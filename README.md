@@ -1,22 +1,28 @@
 <div align="center">
 
-<img src="assets/readme-icon.png" alt="The Readme app icon, a folded lilac document" width="98">
+<img src="assets/readme-banner.jpg" alt="The Readme, a Windows Markdown editor, shown with a folded lilac document and a source-code panel" width="100%">
 
 # The Readme
 
-**A lightweight Markdown editor and source-file viewer for Windows.**
+**A native Windows Markdown editor with live preview and a read-only source viewer.**
+
+**~2.6 MB per installer · 134 recognized extensions · 7 themes plus System**
 
 [![Windows CI](https://github.com/shardapps/the-readme/actions/workflows/ci.yml/badge.svg)](https://github.com/shardapps/the-readme/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/shardapps/the-readme?color=6243bd)](https://github.com/shardapps/the-readme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-6243bd)](LICENSE)
 
-[Download editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.1) · [Download stable viewer](https://github.com/shardapps/the-readme/releases/latest) · [Keyboard shortcuts](#keyboard-shortcuts) · [Contribute](CONTRIBUTING.md)
+[Download editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.1) · [Download stable viewer](https://github.com/shardapps/the-readme/releases/latest) · [See all formats](#supported-file-formats) · [Keyboard shortcuts](#keyboard-shortcuts)
 
 </div>
 
-The Readme by Shard Apps is a free, open-source Windows app for writing Markdown and plain text and reading source files. Use it as a README editor, a local Markdown previewer, or a quick way to inspect Python, C, C++, Java, HDL, and other code files. The native desktop app works offline using the shared .NET Desktop Runtime.
+The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md` and plain text, previewing Markdown as you type, and inspecting local files. Open Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats from the same workspace.
 
 ![The Readme home window with a lilac folded-paper illustration, recent files, drag and drop, and interactive samples](docs/screenshots/welcome.png)
+
+## A small download for Windows
+
+The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Windows Presentation Foundation (WPF) controls and the shared Microsoft .NET 10 Windows Desktop Runtime. Document editing and preview work offline after that runtime is installed. File reads and Markdown parsing run in the background, while the native reading surface adjusts to the space available.
 
 ## Write Markdown and plain text
 
@@ -73,15 +79,68 @@ readme .\src\main.cpp
 | `Ctrl++` / `Ctrl+−` / `Ctrl+0` | Increase, decrease, or reset zoom |
 | `Ctrl+mouse wheel` | Zoom in the document workspace |
 
-## Supported files and requirements
+## Supported file formats
 
-| Files | What you can do |
+The app recognizes **134 extensions** and **17 common project filenames**. It also opens other valid UTF-8 or Unicode text files in read-only mode. Supported text files can be up to **2 MiB**. Use UTF-8 or Unicode with a byte-order mark.
+
+| Editable formats | File extensions and names |
 | --- | --- |
-| Markdown `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtxt` and project documents named `README`, `LICENSE`, or `CHANGELOG` | Read, edit, format, and save |
-| Plain text `.txt` and `.text` | Edit and save as plain text, or use Save As to create a Markdown copy for formatting |
-| Source files `.py`, `.c`, `.h`, `.cpp`, `.hpp`, `.java`, `.cs`, `.js`, `.ts`, `.rs`, `.go`, `.swift`, `.kt`, `.rb`, `.php`, `.hdl`, `.sv`, `.vhdl`, and more | Read, search, copy, wrap lines, and go to a line |
-| Scripts, build files, web source, data, and configuration | Read-only inspection of files such as `Makefile`, `Dockerfile`, `.sh`, `.ps1`, `.html`, `.svg`, `.json`, `.csv`, `.yaml`, `.toml`, `.xml`, and `.log` |
-| Other text files | Read-only view when the file can be decoded as text |
+| Markdown | `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtxt` |
+| Project documents | `README`, `LICENSE`, `LICENCE`, `CHANGELOG`, `NEWS`, `NOTICE`, `AUTHORS`, `CONTRIBUTING`, `COPYING`, `SECURITY` |
+| Plain text | `.txt`, `.text`. Save a Markdown copy to apply formatting. |
+
+The read-only viewer supports search, selection and copy, line wrapping, and **Go to line**. It handles programming languages, hardware description languages, shell scripts, HTML and stylesheets, data and configuration files, logs, patches, and build files.
+
+<details>
+<summary>Show every recognized read-only format</summary>
+
+| Format family | File extensions and names |
+| --- | --- |
+| Python | `.py`, `.pyw`, `.pyi` |
+| C | `.c`, `.h` |
+| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`, `.ipp`, `.inl`, `.ixx` |
+| Java | `.java` |
+| C# | `.cs`, `.csx` |
+| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` |
+| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` |
+| Rust | `.rs` |
+| Go | `.go` |
+| Swift | `.swift` |
+| Kotlin | `.kt`, `.kts` |
+| Ruby | `.rb`, `.rake`, `Gemfile`, `Rakefile` |
+| PHP | `.php`, `.phtml` |
+| Lua | `.lua` |
+| R | `.r` |
+| Dart | `.dart` |
+| Scala | `.scala`, `.sc` |
+| F# | `.fs`, `.fsx`, `.fsi` |
+| Visual Basic | `.vb`, `.vbs` |
+| Objective-C | `.m`, `.mm` |
+| Assembly | `.asm`, `.s`, `.inc` |
+| Haskell | `.hs`, `.lhs` |
+| Elixir | `.ex`, `.exs` |
+| Zig | `.zig` |
+| Shell | `.sh`, `.bash`, `.zsh`, `.fish`, `.bashrc`, `.zshrc` |
+| PowerShell | `.ps1`, `.psm1`, `.psd1` |
+| Batch | `.bat`, `.cmd` |
+| HDL | `.hdl` |
+| Verilog | `.v`, `.vh`, `.sv`, `.svh` |
+| VHDL | `.vhd`, `.vhdl` |
+| SQL | `.sql` |
+| HTML | `.html`, `.htm`, `.xhtml` |
+| Stylesheet | `.css`, `.scss`, `.sass`, `.less` |
+| XML | `.xml`, `.xaml`, `.svg`, `.plist`, `.csproj`, `.vbproj`, `.fsproj`, `.props`, `.targets`, `.resx`, `.slnx` |
+| JSON | `.json`, `.jsonc`, `.jsonl`, `.geojson`, `.ipynb` |
+| YAML | `.yaml`, `.yml` |
+| TOML | `.toml` |
+| Configuration | `.ini`, `.cfg`, `.conf`, `.editorconfig`, `.gitignore`, `.gitattributes`, `.dockerignore`, `.env`, `.lock` |
+| Delimited text | `.csv`, `.tsv`, `.psv` |
+| Log | `.log`, `.out` |
+| Diff | `.diff`, `.patch` |
+| Text markup | `.rst`, `.adoc`, `.asciidoc`, `.org`, `.tex`, `.typ` |
+| Build file | `Dockerfile`, `Containerfile`, `Makefile`, `GNUmakefile`, `CMakeLists.txt`, `.mk`, `.cmake`, `.gradle`, `.sln` |
+
+</details>
 
 ![Python file in the read-only source workspace, with search, wrapping, and go-to-line controls](docs/screenshots/source.png)
 
@@ -91,7 +150,7 @@ readme .\src\main.cpp
 
 **Can I open code files without running them?** Yes. Code, scripts, HTML, and configuration open as inert text. Source formats stay read-only, so the format and save controls are reserved for Markdown and plain text.
 
-**Which Windows versions and encodings does it support?** Windows 11 x64 and Arm64 are the primary targets. Setup permits Windows 10 22H2 x64 (build 19045) with the matching .NET Desktop Runtime. Files use UTF-8 or Unicode with a byte-order mark and are limited to 2 MB for opening and saving.
+**Which Windows versions does it support?** Windows 11 x64 and Arm64 are the primary targets. Setup permits Windows 10 22H2 x64 (build 19045) with the matching .NET Desktop Runtime.
 
 ## Open source
 

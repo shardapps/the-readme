@@ -230,17 +230,36 @@
                   </StackPanel>
                 </Grid>
               </Border>
-              <Border Grid.Row="1" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Margin="0,16,0,0" Padding="16,10">
+              <Grid Grid.Row="1" Margin="0,16,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Padding="16,13">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Bottom" Content="Try a sample →" Click="OpenSample" HorizontalAlignment="Left" Margin="-10,7,0,0"/>
+                    <StackPanel>
+                      <TextBlock Text="Markdown &amp; text" FontSize="16" FontWeight="SemiBold"/>
+                      <TextBlock Text="Edit, format, and preview a README." Foreground="{DynamicResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+                <Border Grid.Column="2" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Padding="16,13">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Bottom" Content="Open a Python example →" Click="OpenCodeSample" HorizontalAlignment="Left" Margin="-10,7,0,0"/>
+                    <StackPanel>
+                      <TextBlock Text="Source &amp; data" FontSize="16" FontWeight="SemiBold"/>
+                      <TextBlock Text="Read Python, C++, Java, HDL, JSON, and more." Foreground="{DynamicResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </Grid>
+              <Border Grid.Row="2" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Margin="0,12,0,0" Padding="16,11">
                 <DockPanel>
                   <TextBlock DockPanel.Dock="Left" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8B7;" FontSize="19" VerticalAlignment="Center" Margin="1,0,13,0" Foreground="{DynamicResource Accent}"/>
-                  <Button DockPanel.Dock="Right" Content="Try a sample →" Click="OpenSample" Margin="8,0,0,0"/>
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Drop a file here" FontWeight="SemiBold"/>
-                    <TextBlock Text="Drag a document in from File Explorer." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap"/>
+                    <TextBlock Text="Drag a document or source file in from File Explorer." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap"/>
                   </StackPanel>
                 </DockPanel>
               </Border>
-              <Button Grid.Row="2" Content="Open a Python example →" Click="OpenCodeSample" HorizontalAlignment="Right" Margin="0,8,0,0"/>
             </Grid>
           </ScrollViewer>
 
