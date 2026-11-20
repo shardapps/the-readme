@@ -206,6 +206,7 @@ public partial class MainWindow
         if (!saveAs && file.IsOnDisk)
             return !dirty || await SaveDocument(file.Path);
 
+        CancelLoad();
         var dialog = new SaveFileDialog
         {
             Title = "Save your document",
@@ -216,7 +217,8 @@ public partial class MainWindow
             AddExtension = true,
             OverwritePrompt = true
         };
-        return dialog.ShowDialog(this) == true && await SaveDocument(dialog.FileName, File.Exists(dialog.FileName));
+        return dialog.ShowDialog(this) == true && ReferenceEquals(file, currentFile) &&
+            await SaveDocument(dialog.FileName, File.Exists(dialog.FileName));
     }
 
     internal async Task<bool> SaveDocument(string destination, bool overwrite = false)

@@ -310,9 +310,12 @@ internal static class Program
         window.ConfirmUnsavedForTest = () => MessageBoxResult.No;
         await window.OpenFile(Path.Combine(Path.GetDirectoryName(path)!, "missing.md"));
         Require(editor.Text.Contains("Live alpha heading"), "Failed open preserves the draft");
+        Task pendingOpen = window.OpenFile(Path.Combine(Path.GetDirectoryName(path)!, "many.md"));
         window.ConfirmUnsavedForTest = null;
         Require(await window.SaveDocument(path), "Save from the editor succeeds");
+        await pendingOpen;
         Require(File.ReadAllText(path).Contains("Live alpha heading") && !window.Title.Contains(" *"), "Saved contents and dirty state");
+        Require(window.Title.StartsWith("README", StringComparison.Ordinal), "Saving cancels a pending document switch");
         await window.OpenFile(pythonPath);
         Require(editor.IsReadOnly && !Control<StackPanel>("FormattingTools").IsVisible && !Control<Button>("SaveButton").IsVisible,
             "Source files expose only read-only tools");
