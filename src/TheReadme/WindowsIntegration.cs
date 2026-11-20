@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 
 namespace TheReadme;
@@ -10,6 +11,9 @@ public static class WindowsIntegration
     private const string IntegrationKey = @"Software\ShardApps\TheReadme";
     private const string OwnedPath = "OwnedPath";
     private static string AppDirectory => Path.GetDirectoryName(Environment.ProcessPath)!;
+    private static readonly Lazy<string?> PackageApplicationId = new(ReadPackageApplicationId);
+    public static bool IsPackaged => PackageApplicationId.Value is not null;
+    public const string ExecutionAliasSettingsUri = "ms-settings:appsfeatures-appexecutionaliases";
 
     public static bool IsInstalled
     {
@@ -20,7 +24,9 @@ public static class WindowsIntegration
         }
     }
 
-    public static string DefaultAppsUri => "ms-settings:defaultapps?registeredAppUser=" + Uri.EscapeDataString("The Readme");
+    public static string DefaultAppsUri => PackageApplicationId.Value is { } appId
+        ? "ms-settings:defaultapps?registeredAUMID=" + Uri.EscapeDataString(appId)
+        : "ms-settings:defaultapps?registeredAppUser=" + Uri.EscapeDataString("The Readme");
 
     public static void Open(string destination) => Process.Start(new ProcessStartInfo(destination) { UseShellExecute = true });
 
@@ -34,6 +40,7 @@ public static class WindowsIntegration
 
     public static void SetPath(bool enable)
     {
+        if (IsPackaged) throw new IOException("Manage the Store version’s command in Windows App execution aliases.");
         using var mutex = new Mutex(false, @"Local\ShardApps.TheReadme.Path");
         try { if (!mutex.WaitOne(TimeSpan.FromSeconds(5))) throw new IOException("Windows PATH is busy."); }
         catch (AbandonedMutexException) { }
@@ -79,6 +86,19 @@ public static class WindowsIntegration
     internal static bool SamePath(string first, string second) => string.Equals(
         Environment.ExpandEnvironmentVariables(first.Trim().Trim('"')).TrimEnd('\\', '/'),
         second.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+
+    private static string? ReadPackageApplicationId()
+    {
+        uint capacity = 0;
+        const int insufficientBuffer = 122;
+        if (GetCurrentApplicationUserModelId(ref capacity, null) != insufficientBuffer || capacity > 1024)
+            return null;
+        var result = new StringBuilder((int)capacity);
+        return GetCurrentApplicationUserModelId(ref capacity, result) == 0 ? result.ToString() : null;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern int GetCurrentApplicationUserModelId(ref uint length, StringBuilder? appUserModelId);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     private static extern nint SendMessageTimeoutW(nint window, uint message, nint wParam, string lParam, uint flags, uint timeout, out nint result);

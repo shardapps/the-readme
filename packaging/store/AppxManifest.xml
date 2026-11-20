@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap uap3 desktop rescap">
+  <Identity Name="ShardCoders.TheReadme-MarkdownEditor"
+            Publisher="CN=D11F3529-FC83-43F5-B8D5-F94F40D30E7D"
+            Version="1.1.0.0" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>The Readme - Markdown Editor</DisplayName>
+    <PublisherDisplayName>ShardCoders</PublisherDisplayName>
+    <Logo>StoreAssets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19045.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="Readme.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="The Readme - Markdown Editor"
+                          Description="Edit Markdown, read source files, and preview documents in a native Windows workspace."
+                          BackgroundColor="transparent" Square150x150Logo="StoreAssets\Square150x150Logo.png"
+                          Square44x44Logo="StoreAssets\Square44x44Logo.png" />
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="readmedocument">
+            <uap:DisplayName>Markdown and plain-text document</uap:DisplayName>
+            <uap:Logo>StoreAssets\Square44x44Logo.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.md</uap:FileType>
+              <uap:FileType>.markdown</uap:FileType>
+              <uap:FileType>.mdown</uap:FileType>
+              <uap:FileType>.mkd</uap:FileType>
+              <uap:FileType>.mkdn</uap:FileType>
+              <uap:FileType>.mdwn</uap:FileType>
+              <uap:FileType>.mdtxt</uap:FileType>
+              <uap:FileType>.txt</uap:FileType>
+              <uap:FileType>.text</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="Readme.exe"
+                        EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="readme.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

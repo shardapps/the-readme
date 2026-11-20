@@ -337,12 +337,40 @@ internal static class Program
             Require(ClickButton(welcome, "Open a Python example →"), "Python example is accessible from Home");
             await Task.Delay(200, token);
             Capture(window, screenshots, "source.png");
+            ChooseTheme(window, "Graphite");
+            Click("FindButton");
+            Control<TextBox>("FindBox").Text = "reading_time";
+            await WaitUntil(() => Control<TextBlock>("FindCount").Text == "1 of 2", token);
+            Capture(window, screenshots, "source-search.png");
             Click("HomeButton");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Require(ClickButton(welcome, "Try a sample →"), "Editor example is accessible from Home");
             Click("SplitButton");
             await Task.Delay(200, token);
             Capture(window, screenshots, "editor.png");
+            ChooseTheme(window, "Paper");
+            Click("SourceButton");
+            int word = editor.Text.IndexOf("editable", StringComparison.Ordinal);
+            editor.Select(word, "editable".Length);
+            Click("BoldButton");
+            await Task.Delay(200, token);
+            Capture(window, screenshots, "format.png");
+            Click("BoldButton");
+            Click("ReadButton");
+            ChooseTheme(window, "Dusk");
+            Click("FindButton");
+            Control<TextBox>("FindBox").Text = "sample";
+            await WaitUntil(() => Control<TextBlock>("FindCount").Text.StartsWith("1 of ", StringComparison.Ordinal), token);
+            Capture(window, screenshots, "find.png");
+            Click("CloseFindButton");
+            ChooseTheme(window, "Moss");
+            Click("RailButton");
+            Click("ZoomInButton");
+            Click("ZoomInButton");
+            await Task.Delay(200, token);
+            Capture(window, screenshots, "focus.png");
+            Click("ZoomLabel");
+            Click("RailButton");
         }
     }
 
