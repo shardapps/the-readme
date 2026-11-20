@@ -237,26 +237,36 @@ internal static class Program
         void Click(string name) => Control<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         var preview = Control<FlowDocumentScrollViewer>("Preview");
         var editor = Control<TextBox>("Source");
+        var surface = Control<Grid>("DocumentSurface");
+        async Task Layout()
+        {
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            window.UpdateLayout();
+        }
 
         Click("CloseFindButton");
-        window.Width = 900;
-        window.UpdateLayout();
+        // The hosted desktop can constrain the outer window. Size its document
+        // viewport directly to exercise both layout ranges on either runner.
+        surface.Width = 620;
+        await Layout();
         double narrowWidth = preview.ActualWidth;
-        window.Width = 1480;
-        window.UpdateLayout();
-        Require(preview.ActualWidth > narrowWidth + 450, "Reading view reflows when the window grows");
+        surface.Width = 1140;
+        await Layout();
+        Require(preview.ActualWidth > narrowWidth + 450,
+            $"Reading view grows with its viewport ({narrowWidth:0} to {preview.ActualWidth:0} DIPs)");
+        surface.ClearValue(FrameworkElement.WidthProperty);
+        await Layout();
         double sideWidth = preview.ActualWidth;
         Click("RailButton");
-        window.UpdateLayout();
+        await Layout();
         Require(preview.ActualWidth > sideWidth + 180, "Reading view expands with sidebar hidden");
         Click("RailButton");
-        window.UpdateLayout();
         window.WindowState = WindowState.Maximized;
-        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-        Require(preview.ActualWidth > 100 && double.IsPositiveInfinity(preview.MaxWidth), "Maximized reading layout has no fixed cap");
+        await Layout();
+        Require(preview.ActualWidth > 100 && preview.ActualWidth >= surface.ActualWidth - preview.Margin.Left - preview.Margin.Right - 2,
+            "Maximized reading layout uses the available width");
         window.WindowState = WindowState.Normal;
-        window.Width = 1240;
-        window.UpdateLayout();
+        await Layout();
 
         Click("SettingsButton");
         window.UpdateLayout();
@@ -270,14 +280,15 @@ internal static class Program
         ChooseTheme(window, "Ocean");
         window.DismissSettingsAt(new Point(8, 160));
 
+        surface.Width = 1020;
         Click("SplitButton");
-        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        await Layout();
         Require(preview.IsVisible && editor.IsVisible && !editor.IsReadOnly && Grid.GetColumn(editor) == 0, "Wide split view");
-        window.Width = 930;
-        window.UpdateLayout();
+        surface.Width = 710;
+        await Layout();
         Require(Grid.GetRow(editor) == 0 && Grid.GetColumn(editor) == 2, "Narrow split stacks editing and preview");
-        window.Width = 1240;
-        window.UpdateLayout();
+        surface.ClearValue(FrameworkElement.WidthProperty);
+        await Layout();
         double normalFont = editor.FontSize;
         Click("ZoomInButton");
         Require(preview.Zoom == 110 && editor.FontSize > normalFont, "Zoom increases both panes");
