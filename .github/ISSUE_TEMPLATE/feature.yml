@@ -1,0 +1,12 @@
+name: Feature request
+description: Suggest an improvement to reading documents in The Readme.
+title: 'Feature: '
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What are you trying to do?
+      description: Describe your task, what gets in the way, and the behavior that would help.
+    validations:
+      required: true
