@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Readme</AssemblyName>
+    <RootNamespace>TheReadme</RootNamespace>
+    <Version>1.0.0</Version>
+    <Company>Shard Apps</Company>
+    <Product>The Readme</Product>
+    <Description>A lightweight Windows README and Markdown viewer.</Description>
+    <ApplicationIcon>../../assets/readme.ico</ApplicationIcon>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <NuGetAuditMode>all</NuGetAuditMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TheReadme.Smoke" />
+    <PackageReference Include="Markdig" Version="1.6.0" />
+    <Resource Include="../../assets/cover.jpg" Link="Assets/cover.jpg" />
+    <Resource Include="../../assets/readme.ico" Link="Assets/readme.ico" />
+  </ItemGroup>
+</Project>

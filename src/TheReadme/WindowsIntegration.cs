@@ -1,0 +1,85 @@
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using Microsoft.Win32;
+
+namespace TheReadme;
+
+public static class WindowsIntegration
+{
+    private const string IntegrationKey = @"Software\ShardApps\TheReadme";
+    private const string OwnedPath = "OwnedPath";
+    private static string AppDirectory => Path.GetDirectoryName(Environment.ProcessPath)!;
+
+    public static bool IsInstalled
+    {
+        get
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(IntegrationKey);
+            return SamePath(key?.GetValue("InstallDirectory") as string ?? "", AppDirectory);
+        }
+    }
+
+    public static string DefaultAppsUri => "ms-settings:defaultapps?registeredAppUser=" + Uri.EscapeDataString("The Readme");
+
+    public static void Open(string destination) => Process.Start(new ProcessStartInfo(destination) { UseShellExecute = true });
+
+    public static string PathStatus()
+    {
+        using var environment = Registry.CurrentUser.OpenSubKey("Environment");
+        using var state = Registry.CurrentUser.OpenSubKey(IntegrationKey);
+        if (!ReadPath(environment).Split(';').Any(part => SamePath(part, AppDirectory))) return "Off";
+        return SamePath(state?.GetValue(OwnedPath) as string ?? "", AppDirectory) ? "On" : "Already on PATH";
+    }
+
+    public static void SetPath(bool enable)
+    {
+        using var mutex = new Mutex(false, @"Local\ShardApps.TheReadme.Path");
+        try { if (!mutex.WaitOne(TimeSpan.FromSeconds(5))) throw new IOException("Windows PATH is busy."); }
+        catch (AbandonedMutexException) { }
+        try
+        {
+            using var environment = Registry.CurrentUser.CreateSubKey("Environment");
+            using var state = Registry.CurrentUser.CreateSubKey(IntegrationKey);
+            string current = ReadPath(environment);
+            var parts = current.Split(';').ToList();
+            int existing = parts.FindIndex(part => SamePath(part, AppDirectory));
+            bool owned = SamePath(state.GetValue(OwnedPath) as string ?? "", AppDirectory);
+            if (enable && existing < 0)
+            {
+                if (AppDirectory.Contains(';')) throw new IOException("This installation folder cannot be added to PATH.");
+                string next = current.Length == 0 ? AppDirectory : current + ";" + AppDirectory;
+                state.SetValue(OwnedPath, AppDirectory);
+                try { WritePath(environment, next); }
+                catch { state.DeleteValue(OwnedPath, throwOnMissingValue: false); throw; }
+            }
+            else if (!enable && owned)
+            {
+                int addedEntry = parts.FindLastIndex(part => part.Equals(AppDirectory, StringComparison.Ordinal));
+                if (addedEntry >= 0)
+                {
+                    parts.RemoveAt(addedEntry);
+                    WritePath(environment, string.Join(';', parts));
+                }
+                state.DeleteValue(OwnedPath, throwOnMissingValue: false);
+            }
+        }
+        finally { mutex.ReleaseMutex(); }
+    }
+
+    private static string ReadPath(RegistryKey? key) => key?.GetValue("Path", "", RegistryValueOptions.DoNotExpandEnvironmentNames) as string ?? "";
+
+    private static void WritePath(RegistryKey key, string value)
+    {
+        var kind = key.GetValue("Path") is null ? RegistryValueKind.ExpandString : key.GetValueKind("Path");
+        key.SetValue("Path", value, kind);
+        SendMessageTimeoutW((nint)0xffff, 0x001a, 0, "Environment", 2, 1000, out _);
+    }
+
+    internal static bool SamePath(string first, string second) => string.Equals(
+        Environment.ExpandEnvironmentVariables(first.Trim().Trim('"')).TrimEnd('\\', '/'),
+        second.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern nint SendMessageTimeoutW(nint window, uint message, nint wParam, string lParam, uint flags, uint timeout, out nint result);
+}

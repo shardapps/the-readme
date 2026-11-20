@@ -1,0 +1,39 @@
+name: Release Windows installers
+
+on:
+  push:
+    tags: ['v[0-9]*']
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish verified installers
+    needs: test-and-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: windows-installers
+          path: installers
+      - name: Check version and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          version=$(python -c 'import xml.etree.ElementTree as ET; print(ET.parse("src/TheReadme/TheReadme.csproj").findtext("./PropertyGroup/Version"))')
+          test "$RELEASE_TAG" = "v$version"
+          git merge-base --is-ancestor HEAD origin/main
+          (cd installers && sha256sum --check SHA256SUMS.txt)
+          gh release create "$RELEASE_TAG" installers/* --verify-tag --generate-notes --title "The Readme $version"

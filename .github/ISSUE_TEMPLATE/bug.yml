@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a problem with The Readme on Windows.
+title: 'Bug: '
+labels: [bug]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: App version, Windows build, and architecture
+      placeholder: 1.0.0, Windows 11 25H2, x64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the file extension and a small shareable sample if useful. Remove private paths and document contents.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true

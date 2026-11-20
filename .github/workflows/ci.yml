@@ -1,0 +1,87 @@
+name: Windows CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows build and smoke tests
+    runs-on: windows-2025
+    timeout-minutes: 20
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - name: Restore and audit locked dependencies
+        run: dotnet restore --locked-mode -warnaserror
+      - name: Build
+        run: dotnet build --no-restore -c Release -warnaserror
+      - name: Test file handling, rendering, search, and cancellation
+        run: dotnet run --project tests/TheReadme.Smoke -c Release --no-build -- artifacts/screenshots
+      - name: Build x64 and Arm64 installers
+        run: ./scripts/Build-Installer.ps1
+      - name: Test x64 installation, PATH, file registration, and uninstall
+        shell: pwsh
+        run: ./scripts/Test-Installer.ps1 -Installer (Get-Item artifacts/installers/*-win-x64-setup.exe).FullName
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-installers
+          path: artifacts/installers/*
+          if-no-files-found: error
+      - name: Upload visual checks and installer logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-diagnostics
+          path: |
+            artifacts/screenshots/*.png
+            ${{ runner.temp }}/setup.log
+            ${{ runner.temp }}/uninstall.log
+          if-no-files-found: ignore
+
+  arm64:
+    name: Windows Arm64 installer smoke test
+    needs: windows
+    runs-on: windows-11-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: windows-installers
+          path: artifacts/installers
+      - name: Test native Arm64 installation and startup
+        shell: pwsh
+        run: ./scripts/Test-Installer.ps1 -Installer (Get-Item artifacts/installers/*-win-arm64-setup.exe).FullName
+      - name: Upload Arm64 installer logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: arm64-installer-logs
+          path: |
+            ${{ runner.temp }}/setup.log
+            ${{ runner.temp }}/uninstall.log
+          if-no-files-found: ignore
