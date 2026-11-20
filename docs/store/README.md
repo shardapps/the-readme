@@ -1,6 +1,6 @@
 # Microsoft Store packaging
 
-The Store edition packages the same native WPF app as the GitHub edition with the matching .NET Desktop Runtime included. The Store edition uses Windows file associations and the `readme-editor.exe` App Execution Alias. The GitHub installer manages its optional `readme` PATH entry separately.
+The Store edition packages the same native WPF app as the GitHub edition with the matching .NET Desktop Runtime included. The Store edition uses Windows file associations and the `readme.exe` App Execution Alias. The GitHub installer manages its optional `readme` PATH entry separately.
 
 The Microsoft Store product is **The Readme - Markdown Editor**. The manifest contains the public package identity assigned to this product. For another publisher’s package, use that product’s identity and publisher display name from Partner Center.
 

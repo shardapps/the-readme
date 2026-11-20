@@ -46,7 +46,7 @@
         <uap3:Extension Category="windows.appExecutionAlias" Executable="Readme.exe"
                         EntryPoint="Windows.FullTrustApplication">
           <uap3:AppExecutionAlias>
-            <desktop:ExecutionAlias Alias="readme-editor.exe" />
+            <desktop:ExecutionAlias Alias="readme.exe" />
           </uap3:AppExecutionAlias>
         </uap3:Extension>
       </Extensions>

@@ -55,7 +55,7 @@ public partial class MainWindow : Window
 
         ## Windows integration
 
-        After installing, open **Settings** to set The Readme as your default Markdown viewer or add the terminal command to your PATH.
+        After installing, open **Settings** to choose file associations or manage the `readme` terminal command.
 
         [Return to the top](#the-readme) · [Visit the project on GitHub](https://github.com/shardapps/the-readme)
         """;
@@ -442,7 +442,7 @@ public partial class MainWindow : Window
         {
             PathButton.IsEnabled = true;
             PathButton.Content = "Manage terminal command ↗";
-            PathHint.Text = "Use readme-editor in a terminal. Windows manages this command in App execution aliases.";
+            PathHint.Text = "Use readme in a terminal. Windows manages this command in App execution aliases.";
             return;
         }
         if (!WindowsIntegration.IsInstalled)

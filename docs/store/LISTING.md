@@ -16,7 +16,7 @@ Inspect Python, C, C++, Java, HDL, JSON, CSV, logs, and more. The Readme recogni
 
 Choose from seven palettes or follow Windows. Reading and editing adjust to the window, with zoom from 60% to 220%. Open the built-in Markdown and Python examples to try it before choosing a file.
 
-Work offline on local files. The Readme is free and open source from Shard Apps. The publisher receives no document content or analytics.
+Work offline on local files. This first public preview is free and open source from Shard Apps. The publisher receives no document content or analytics.
 
 **What’s new**
 
@@ -50,6 +50,10 @@ markdown editor, readme viewer, markdown preview, code viewer, plain text editor
 | 03-source.png | Inspect Python and other source files with wrapping, search, and Go to line. |
 | 04-midnight.png | Read in Midnight or choose from seven themes and the Windows system setting. |
 | 05-home.png | Open a local file, drop it into the window, or try the built-in examples. |
+| 06-format.png | Format Markdown selections with the toolbar and save or export your draft. |
+| 07-find.png | Search for a phrase in the rendered document and jump between matches. |
+| 08-focus.png | Hide the outline and increase zoom to use the full width for reading. |
+| 09-source-search.png | Search a read-only source file in the Graphite theme. |
 
 ## Certification notes
 
