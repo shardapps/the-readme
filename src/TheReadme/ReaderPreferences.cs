@@ -16,6 +16,8 @@ public sealed class ReaderPreferences
     public int Zoom { get; set; } = 100;
     public bool ShowSidebar { get; set; } = true;
     public bool RememberRecent { get; set; } = true;
+    public bool WrapCode { get; set; }
+    public bool WrapText { get; set; } = true;
     public List<string> Recent { get; set; } = [];
 
     public static ReaderPreferences Load()
@@ -23,7 +25,7 @@ public sealed class ReaderPreferences
         try
         {
             var settings = JsonSerializer.Deserialize<ReaderPreferences>(File.ReadAllText(SettingsFile)) ?? new();
-            settings.Zoom = Math.Clamp(settings.Zoom, 80, 160);
+            settings.Zoom = Math.Clamp(settings.Zoom, 60, 220);
             settings.Recent = settings.RememberRecent ? (settings.Recent ?? []).Where(path => !string.IsNullOrWhiteSpace(path)).Take(8).ToList() : [];
             return settings;
         }

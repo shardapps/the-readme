@@ -1,28 +1,43 @@
 <div align="center">
 
-<img src="assets/readme-icon.png" alt="The Readme app icon, a folded lilac document" width="98">
+<img src="assets/readme-banner.jpg" alt="The Readme, a Windows Markdown editor, shown with a folded lilac document and a source-code panel" width="100%">
 
 # The Readme
 
-**A lightweight Markdown and README viewer for Windows.**
+**A native Windows Markdown editor with live preview and a read-only source viewer.**
+
+**~2.6 MB per installer · 134 recognized extensions · 7 themes plus System**
 
 [![Windows CI](https://github.com/shardapps/the-readme/actions/workflows/ci.yml/badge.svg)](https://github.com/shardapps/the-readme/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/shardapps/the-readme?color=6243bd)](https://github.com/shardapps/the-readme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-6243bd)](LICENSE)
 
-[Download for Windows](https://github.com/shardapps/the-readme/releases/latest) · [Installation](#install-on-windows) · [Keyboard shortcuts](#keyboard-shortcuts) · [Contribute](CONTRIBUTING.md)
+[Download editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.1) · [Download stable viewer](https://github.com/shardapps/the-readme/releases/latest) · [See all formats](#supported-file-formats) · [Keyboard shortcuts](#keyboard-shortcuts)
 
 </div>
 
-The Readme by Shard Apps is a free, open-source desktop app for reading `README.md`, Markdown, plain-text, and extensionless README files on Windows. Open files from Explorer, drop a document into the app, or launch `readme .\README.md` from a terminal. Native Windows rendering keeps the installer small and works offline using the shared .NET Desktop Runtime.
+The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md` and plain text, previewing Markdown as you type, and inspecting local files. Open Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats from the same workspace.
 
-![The Readme home window with a lilac folded-paper illustration, open-file button, recent files sidebar, and drag-and-drop area](docs/screenshots/welcome.png)
+![The Readme home window with a lilac folded-paper illustration, recent files, drag and drop, and interactive samples](docs/screenshots/welcome.png)
+
+## A small download for Windows
+
+The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Windows Presentation Foundation (WPF) controls and the shared Microsoft .NET 10 Windows Desktop Runtime. Document editing and preview work offline after that runtime is installed. File reads and Markdown parsing run in the background, while the native reading surface adjusts to the space available.
+
+## Write Markdown and plain text
+
+- **Read, Edit, and Split.** Open a README, edit the Markdown source, and see a live preview alongside it. The split view stacks when the usable width gets narrow.
+- **Format a selection.** Toggle bold, italic, strikethrough, and inline code. Use **Text style** to switch between title, heading, subheading, and body text. These styles are saved as standard Markdown.
+- **Save a draft or a copy.** Use **New** to start a Markdown file. Use **Save as** to save as Markdown or plain text. The app prompts before leaving unsaved changes and detects a file changed on disk before saving over it.
+- **Practice on a sample.** Open the editable README from Home or try the Python example to practice searching, wrapping lines, and jumping to a line.
+
+![Markdown source and live preview side by side in the Ocean theme, with formatting and save controls](docs/screenshots/editor.png)
 
 ## Read and navigate
 
-- **Read or view source.** Preview headings, lists, tables, task lists, quotes, code blocks, and supported local images. Switch to the original Markdown with **Source**.
-- **Find what you need.** Search the current view, jump to a heading from the outline, or reopen a recent file.
-- **Make it comfortable.** Choose Lilac, Paper, Moss, Midnight, or the Windows system theme. Adjust zoom or hide the sidebar for a wider reading column.
+- **Reflow at your window size.** Text fills the available reading area as you resize, maximize, or hide the outline. Zoom from 60% to 220% with the toolbar, keyboard, or Ctrl+mouse wheel.
+- **Find and jump.** Search the current view, jump to a heading from the Markdown outline, use **Go to line** in source, or reopen a recent file.
+- **Choose a palette.** Select Lilac, Paper, Moss, Ocean, Midnight, Dusk, Graphite, or follow your system theme. Click outside Settings or press Escape to close it.
 - **Keep documents local.** The reader requires no sign-in and sends no telemetry. It displays the alt text for remote images and opens external links when activated. [Privacy policy](PRIVACY.md)
 
 | Lilac | Midnight |
@@ -32,8 +47,8 @@ The Readme by Shard Apps is a free, open-source desktop app for reading `README.
 ## Install on Windows
 
 1. Install the official [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) for your architecture if you do not already have it.
-2. Download the x64 or Arm64 `-setup.exe` from the [latest GitHub release](https://github.com/shardapps/the-readme/releases/latest). In Windows Settings, see **System → About → System type** to check your architecture.
-3. Run setup and launch **The Readme** from Start. Setup installs for the current Windows user. Releases include a `SHA256SUMS.txt` file for verifying downloads.
+2. Download the matching x64 or Arm64 setup EXE. In Windows Settings, see **System → About → System type** to check your architecture. [Editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.1) · [Stable viewer](https://github.com/shardapps/the-readme/releases/latest)
+3. Run setup and launch **The Readme** from Start. Setup installs for the current Windows user. The alpha upgrades an existing The Readme installation. Releases include a `SHA256SUMS.txt` file for verifying downloads.
 
 In **Settings → Windows integration**, select **Set as default app** to open Windows Default Apps. Assign the file extensions you want, including `.md` or `.markdown`. Windows manages defaults by file type. Open extensionless files using drag and drop, **Open file**, or the terminal.
 
@@ -43,6 +58,7 @@ To enable the terminal command, select **Add the readme command to my user PATH*
 readme .\README.md
 readme ".\project notes.markdown"
 readme .\README
+readme .\src\main.cpp
 ```
 
 ## Keyboard shortcuts
@@ -50,22 +66,91 @@ readme .\README
 | Shortcut | Action |
 | --- | --- |
 | `Ctrl+O` | Open a file |
+| `Ctrl+N` | New Markdown document |
+| `Ctrl+S` / `Ctrl+Shift+S` | Save or Save As |
 | `Ctrl+F` | Find in the current view |
 | `Enter` / `Shift+Enter` | Next or previous match in the search field |
+| `Ctrl+G` | Go to a logical source line |
 | `Ctrl+B` | Show or hide the sidebar |
+| `Ctrl+Shift+B` / `Ctrl+I` | Toggle bold or italic in the Markdown editor |
+| `Ctrl+Z` / `Ctrl+Y` | Undo or redo in the editor |
 | `Ctrl+,` | Open Settings |
 | `F5` | Reload the current file |
 | `Ctrl++` / `Ctrl+−` / `Ctrl+0` | Increase, decrease, or reset zoom |
+| `Ctrl+mouse wheel` | Zoom in the document workspace |
 
-## Supported files and requirements
+## Supported file formats
 
-**Can The Readme open `.md` files on Windows without a browser?** Yes. It is a native Windows desktop Markdown reader. It supports `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtxt`, `.txt`, and extensionless text files like `README`, `LICENSE`, and `CHANGELOG`.
+The app recognizes **134 extensions** and **17 common project filenames**. It also opens other valid UTF-8 or Unicode text files in read-only mode. Supported text files can be up to **2 MiB**. Use UTF-8 or Unicode with a byte-order mark.
+
+| Editable formats | File extensions and names |
+| --- | --- |
+| Markdown | `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtxt` |
+| Project documents | `README`, `LICENSE`, `LICENCE`, `CHANGELOG`, `NEWS`, `NOTICE`, `AUTHORS`, `CONTRIBUTING`, `COPYING`, `SECURITY` |
+| Plain text | `.txt`, `.text`. Save a Markdown copy to apply formatting. |
+
+The read-only viewer supports search, selection and copy, line wrapping, and **Go to line**. It handles programming languages, hardware description languages, shell scripts, HTML and stylesheets, data and configuration files, logs, patches, and build files.
+
+<details>
+<summary>Show every recognized read-only format</summary>
+
+| Format family | File extensions and names |
+| --- | --- |
+| Python | `.py`, `.pyw`, `.pyi` |
+| C | `.c`, `.h` |
+| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx`, `.ipp`, `.inl`, `.ixx` |
+| Java | `.java` |
+| C# | `.cs`, `.csx` |
+| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` |
+| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` |
+| Rust | `.rs` |
+| Go | `.go` |
+| Swift | `.swift` |
+| Kotlin | `.kt`, `.kts` |
+| Ruby | `.rb`, `.rake`, `Gemfile`, `Rakefile` |
+| PHP | `.php`, `.phtml` |
+| Lua | `.lua` |
+| R | `.r` |
+| Dart | `.dart` |
+| Scala | `.scala`, `.sc` |
+| F# | `.fs`, `.fsx`, `.fsi` |
+| Visual Basic | `.vb`, `.vbs` |
+| Objective-C | `.m`, `.mm` |
+| Assembly | `.asm`, `.s`, `.inc` |
+| Haskell | `.hs`, `.lhs` |
+| Elixir | `.ex`, `.exs` |
+| Zig | `.zig` |
+| Shell | `.sh`, `.bash`, `.zsh`, `.fish`, `.bashrc`, `.zshrc` |
+| PowerShell | `.ps1`, `.psm1`, `.psd1` |
+| Batch | `.bat`, `.cmd` |
+| HDL | `.hdl` |
+| Verilog | `.v`, `.vh`, `.sv`, `.svh` |
+| VHDL | `.vhd`, `.vhdl` |
+| SQL | `.sql` |
+| HTML | `.html`, `.htm`, `.xhtml` |
+| Stylesheet | `.css`, `.scss`, `.sass`, `.less` |
+| XML | `.xml`, `.xaml`, `.svg`, `.plist`, `.csproj`, `.vbproj`, `.fsproj`, `.props`, `.targets`, `.resx`, `.slnx` |
+| JSON | `.json`, `.jsonc`, `.jsonl`, `.geojson`, `.ipynb` |
+| YAML | `.yaml`, `.yml` |
+| TOML | `.toml` |
+| Configuration | `.ini`, `.cfg`, `.conf`, `.editorconfig`, `.gitignore`, `.gitattributes`, `.dockerignore`, `.env`, `.lock` |
+| Delimited text | `.csv`, `.tsv`, `.psv` |
+| Log | `.log`, `.out` |
+| Diff | `.diff`, `.patch` |
+| Text markup | `.rst`, `.adoc`, `.asciidoc`, `.org`, `.tex`, `.typ` |
+| Build file | `Dockerfile`, `Containerfile`, `Makefile`, `GNUmakefile`, `CMakeLists.txt`, `.mk`, `.cmake`, `.gradle`, `.sln` |
+
+</details>
+
+![Python file in the read-only source workspace, with search, wrapping, and go-to-line controls](docs/screenshots/source.png)
+
+**What does Split do in the Markdown editor?** It shows your draft and a live rendered preview together. Bold, italic, headings, code blocks, tables, and task lists are available as Markdown syntax. The toolbar offers shortcuts for common styles.
 
 **Can I use it as my default Markdown viewer?** Yes. The EXE installer registers The Readme in Windows Default Apps. Choose the file types there.
 
-**Which Windows versions does it target?** Windows 11 x64 and Arm64 are the primary targets. Setup permits Windows 10 22H2 x64 (build 19045) with the matching .NET Desktop Runtime. Files must be UTF-8 or Unicode with a byte-order mark and no larger than 2 MB.
+**Can I open code files without running them?** Yes. Code, scripts, HTML, and configuration open as inert text. Source formats stay read-only, so the format and save controls are reserved for Markdown and plain text.
 
-**Can I edit Markdown in the app?** The Readme is a viewer. You can select and copy text from either view. Edit the original in your preferred editor and reload it with `F5`.
+**Which Windows versions does it support?** Windows 11 x64 and Arm64 are the primary targets. Setup permits Windows 10 22H2 x64 (build 19045) with the matching .NET Desktop Runtime.
 
 ## Open source
 

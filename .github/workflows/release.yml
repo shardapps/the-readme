@@ -36,4 +36,8 @@ jobs:
           test "$RELEASE_TAG" = "v$version"
           git merge-base --is-ancestor HEAD origin/main
           (cd installers && sha256sum --check SHA256SUMS.txt)
-          gh release create "$RELEASE_TAG" installers/* --verify-tag --generate-notes --title "The Readme $version"
+          flags=()
+          if [[ "$version" == *-* ]]; then
+            flags+=(--prerelease --latest=false)
+          fi
+          gh release create "$RELEASE_TAG" installers/* --verify-tag --generate-notes --title "The Readme $version" "${flags[@]}"

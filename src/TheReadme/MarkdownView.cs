@@ -237,7 +237,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
         renderedImages++;
         var control = new System.Windows.Controls.Image
         {
-            Source = bitmap, MaxWidth = 660, MaxHeight = 420, Stretch = Stretch.Uniform,
+            Source = bitmap, MaxWidth = Math.Min(660, bitmap.Width), MaxHeight = Math.Min(420, bitmap.Height), Stretch = Stretch.Uniform,
             ToolTip = alt.Length == 0 ? "Local image" : alt
         };
         System.Windows.Automation.AutomationProperties.SetName(control, (string)control.ToolTip);
