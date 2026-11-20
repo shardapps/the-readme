@@ -40,6 +40,16 @@ jobs:
       - name: Test x64 installation, PATH, file registration, and uninstall
         shell: pwsh
         run: ./scripts/Test-Installer.ps1 -Installer (Get-Item artifacts/installers/*-win-x64-setup.exe).FullName
+      - name: Build and validate the Microsoft Store MSIX bundle
+        run: ./scripts/Build-StorePackage.ps1
+      - name: Upload the Microsoft Store bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: microsoft-store-bundle
+          path: |
+            artifacts/store/*.msixbundle
+            artifacts/store/SHA256SUMS.txt
+          if-no-files-found: error
       - name: Upload Windows installers
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

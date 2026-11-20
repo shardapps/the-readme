@@ -432,12 +432,19 @@ public partial class MainWindow : Window
 
     private void OpenDefaultApps(object sender, RoutedEventArgs e)
     {
-        try { WindowsIntegration.Open(WindowsIntegration.IsInstalled ? WindowsIntegration.DefaultAppsUri : "ms-settings:defaultapps"); }
+        try { WindowsIntegration.Open(WindowsIntegration.IsInstalled || WindowsIntegration.IsPackaged ? WindowsIntegration.DefaultAppsUri : "ms-settings:defaultapps"); }
         catch (Win32Exception ex) { Status.Text = ex.Message; }
     }
 
     private void RefreshPath()
     {
+        if (WindowsIntegration.IsPackaged)
+        {
+            PathButton.IsEnabled = true;
+            PathButton.Content = "Manage terminal command ↗";
+            PathHint.Text = "Use readme-editor in a terminal. Windows manages this command in App execution aliases.";
+            return;
+        }
         if (!WindowsIntegration.IsInstalled)
         {
             PathButton.IsEnabled = false;
@@ -452,6 +459,12 @@ public partial class MainWindow : Window
 
     private async void TogglePath(object sender, RoutedEventArgs e)
     {
+        if (WindowsIntegration.IsPackaged)
+        {
+            try { WindowsIntegration.Open(WindowsIntegration.ExecutionAliasSettingsUri); }
+            catch (Win32Exception ex) { Status.Text = ex.Message; }
+            return;
+        }
         PathButton.IsEnabled = false;
         try { await Task.Run(() => WindowsIntegration.SetPath(WindowsIntegration.PathStatus() == "Off")); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { Status.Text = ex.Message; }
