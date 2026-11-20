@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -18,7 +19,7 @@ public partial class MainWindow : Window
     private const string Sample = """
         # The Readme
 
-        A small Windows reader for Markdown and README files. This sample shows how the app lays out a document.
+        This is an editable Markdown sample. Choose **Split** to work on the source and see the result as you type.
 
         ## Getting started
 
@@ -30,16 +31,27 @@ public partial class MainWindow : Window
 
         > The sidebar lists headings. Select one to jump to that section.
 
-        ## Read your way
+        ## Try the editor
+
+        1. Select a word and use **B** or *I* in the toolbar.
+        2. Place the cursor on a line and pick a size from **Text style**.
+        3. Press **Ctrl+Shift+S** to save your own copy.
 
         | Feature | Shortcut |
         | --- | --- |
-        | Find in the document | Ctrl+F |
-        | Show or hide the outline | Ctrl+B |
-        | Reset the reading zoom | Ctrl+0 |
+        | Save changes | Ctrl+S |
+        | Find in the current view | Ctrl+F |
+        | Jump to a source line | Ctrl+G |
 
-        - [x] Read formatted Markdown
-        - [ ] Try a different theme in Settings
+        - [x] Open the sample
+        - [ ] Change the style of a heading
+        - [ ] Try Ocean or Dusk in Settings
+
+        ## Read your way
+
+        Press **Ctrl+B** to toggle the outline. Zoom with **Ctrl+mouse wheel** or the toolbar buttons. The text reflows when you change the window size or zoom.
+
+        Open a source file such as `.py`, `.cpp`, `.java`, or `.hdl` to search, copy, and jump to a line in read-only mode.
 
         ## Windows integration
 
@@ -54,7 +66,10 @@ public partial class MainWindow : Window
         ["Lilac"] = ["#F8F7FC", "#FFFFFF", "#F0EDF8", "#DFDAEA", "#211B2F", "#635B71", "#6243BD", "#FFFFFF", "#E7E1F5"],
         ["Paper"] = ["#FAF6EE", "#FFFDF7", "#F5EDDF", "#E3D8C8", "#2C221B", "#6E5B4A", "#884929", "#FFFFFF", "#EEE2D2"],
         ["Midnight"] = ["#171421", "#201A2B", "#2C233A", "#40354D", "#F3EAFB", "#C1B1CF", "#CDB1FF", "#241334", "#3C2E50"],
-        ["Moss"] = ["#F0F4EF", "#FBFDF9", "#E6EEE5", "#D5E0D3", "#1D2D24", "#4E6356", "#31664D", "#FFFFFF", "#DDEBDC"]
+        ["Moss"] = ["#F0F4EF", "#FBFDF9", "#E6EEE5", "#D5E0D3", "#1D2D24", "#4E6356", "#31664D", "#FFFFFF", "#DDEBDC"],
+        ["Ocean"] = ["#EFF6FA", "#FAFDFF", "#E4F0F7", "#CBDDE8", "#132C3B", "#4A6374", "#215F83", "#FFFFFF", "#D8EAF4"],
+        ["Dusk"] = ["#25191D", "#302026", "#3F2A31", "#5D414B", "#FFF0F3", "#DFBAC5", "#F9AE91", "#3A211C", "#533440"],
+        ["Graphite"] = ["#14171B", "#1C2025", "#262C33", "#3E4751", "#F2F5F8", "#BAC4CF", "#B0D6FF", "#102339", "#354354"]
     };
 
     private readonly ReaderPreferences preferences;
@@ -69,8 +84,6 @@ public partial class MainWindow : Window
     private CancellationTokenSource? loading;
     private string? pendingAnchor;
     private int matchIndex;
-    private bool isSample;
-    private bool showingSource;
 
     private sealed record RailEntry(string Label, string Hint, Thickness Indent, OutlineItem? Heading = null, string? File = null);
 
@@ -81,10 +94,16 @@ public partial class MainWindow : Window
         this.preferences = preferences;
         InitializeComponent();
         searchDelay.Tick += (_, _) => { searchDelay.Stop(); Search(); };
+        previewDelay.Tick += (_, _) => { previewDelay.Stop(); _ = RefreshDraftPreview(); };
         RecentToggle.IsChecked = preferences.RememberRecent;
         foreach (string theme in Themes.Keys.Prepend("System"))
         {
-            var button = new Button { Content = theme, Tag = theme, Padding = new Thickness(9, 5, 9, 5), Margin = new Thickness(0, 1, 3, 2) };
+            var label = new StackPanel { Orientation = Orientation.Horizontal };
+            Brush swatch = theme == "System" ? SystemColors.HighlightBrush : new SolidColorBrush((Color)ColorConverter.ConvertFromString(Themes[theme][6]));
+            label.Children.Add(new System.Windows.Shapes.Ellipse { Width = 10, Height = 10, Fill = swatch, Margin = new Thickness(0, 0, 6, 0) });
+            label.Children.Add(new TextBlock { Text = theme, VerticalAlignment = VerticalAlignment.Center });
+            var button = new Button { Content = label, Tag = theme, Padding = new Thickness(9, 5, 9, 5), Margin = new Thickness(0, 1, 3, 2) };
+            System.Windows.Automation.AutomationProperties.SetName(button, theme);
             button.Click += (_, _) => { preferences.Theme = theme; preferences.Save(); ApplyTheme(); };
             ThemeButtons.Children.Add(button);
         }
@@ -104,7 +123,22 @@ public partial class MainWindow : Window
         SystemEvents.UserPreferenceChanged -= WindowsPreferencesChanged;
         searchDelay.Stop();
         CancelLoad();
+        CancelPreview();
         base.OnClosed(e);
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        (PresentationSource.FromVisual(this) as HwndSource)?.AddHook(DismissFromWindowChrome);
+    }
+
+    private nint DismissFromWindowChrome(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
+    {
+        const int nonClientLeftDown = 0x00A1;
+        const int nonClientRightDown = 0x00A4;
+        if (message is nonClientLeftDown or nonClientRightDown) DismissSettings();
+        return 0;
     }
 
     private void SystemSettingsChanged(object? sender, PropertyChangedEventArgs e)
@@ -143,7 +177,7 @@ public partial class MainWindow : Window
             System.Windows.Automation.AutomationProperties.SetItemStatus(button, active ? "Selected" : "");
         }
         RefreshMode();
-        if (currentFile is not null)
+        if (currentFile?.Format.Kind == FileKind.Markdown)
         {
             var scroll = FindScrollViewer(Preview);
             double offset = scroll?.VerticalOffset ?? 0;
@@ -157,6 +191,7 @@ public partial class MainWindow : Window
 
     internal async Task OpenFile(string path, string? anchor = null)
     {
+        if (!await CanLeaveDocument()) return;
         CancelLoad();
         var operation = new CancellationTokenSource();
         loading = operation;
@@ -180,7 +215,7 @@ public partial class MainWindow : Window
             }, operation.Token);
             if (loading != operation || operation.IsCancellationRequested) return;
             pendingAnchor = anchor;
-            Display(result.file, result.markdown, result.images, sample: false);
+            Display(result.file, result.markdown, result.images);
             preferences.Record(result.file.Path);
         }
         catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
@@ -201,29 +236,31 @@ public partial class MainWindow : Window
         loading = null;
     }
 
-    private void Display(ReaderFile file, MarkdownDocument? markdown, IReadOnlyDictionary<string, ImageSource>? images, bool sample)
+    private void Display(ReaderFile file, MarkdownDocument? markdown, IReadOnlyDictionary<string, ImageSource>? images, bool sample = false, bool edit = false)
     {
-        isSample = sample;
+        CancelPreview();
         currentFile = file;
         currentMarkdown = markdown;
         currentImages = images ?? new Dictionary<string, ImageSource>();
-        showingSource = false;
-        Source.Clear();
+        mode = file.Format.Kind == FileKind.Markdown && !edit ? ViewMode.Read : ViewMode.Edit;
+        LoadEditor(file.Text, loadNow: mode != ViewMode.Read);
+        savedText = renderedText = file.Text;
+        dirty = false;
         FindBar.Visibility = Visibility.Collapsed;
+        LineEntry.Visibility = Visibility.Collapsed;
         FindBox.Clear();
         searchDelay.Stop();
         RenderPreview();
-        Caption.Text = file.Name;
-        Title = file.Name + " · The Readme";
         FileTitle.Text = sample ? "Sample document" : file.Name;
-        FileLocation.Text = sample ? "The Readme" : file.Path;
-        FileLocation.ToolTip = sample ? null : file.Path;
+        FileLocation.Text = file.IsOnDisk ? file.Path : sample ? "The Readme · sample" : "New document";
+        FileLocation.ToolTip = file.IsOnDisk ? file.Path : null;
         Welcome.Visibility = Visibility.Collapsed;
         DocumentArea.Visibility = Visibility.Visible;
-        ReloadButton.IsEnabled = RevealButton.IsEnabled = !sample;
-        FindButton.IsEnabled = ReadButton.IsEnabled = SourceButton.IsEnabled = true;
+        ReloadButton.IsEnabled = RevealButton.IsEnabled = file.IsOnDisk;
+        FindButton.IsEnabled = true;
         RefreshMode();
-        Status.Text = sample ? "Sample · Markdown" : $"{(file.IsPlainText ? "Plain text" : "Markdown")} · {file.Bytes / 1024.0:0.#} KB";
+        RefreshDocumentLabel();
+        Status.Text = sample ? $"Sample · {file.Format.Label}" : FileStatus(file);
         FadeIn(DocumentArea);
         if (pendingAnchor is { } anchor)
         {
@@ -234,6 +271,14 @@ public partial class MainWindow : Window
 
     private void RenderPreview()
     {
+        if (currentFile?.Format.Kind != FileKind.Markdown)
+        {
+            Preview.Document = null;
+            outline = [];
+            searchIndex = null;
+            RefreshRail();
+            return;
+        }
         var view = new MarkdownView(this, currentFile!, currentImages, OpenLink);
         Preview.Document = view.Render(currentMarkdown);
         outline = view.Outline;
@@ -244,14 +289,15 @@ public partial class MainWindow : Window
     private void RefreshRail()
     {
         HomeButton.Visibility = HomeDivider.Visibility = currentFile is null ? Visibility.Collapsed : Visibility.Visible;
-        RailHeading.Text = currentFile is null ? "Recent files" : "On this page";
-        RailEntry[] entries = currentFile is null
+        bool showOutline = currentFile?.Format.Kind == FileKind.Markdown;
+        RailHeading.Text = showOutline ? "On this page" : "Recent files";
+        RailEntry[] entries = !showOutline
             ? preferences.Recent.Select(path => new RailEntry(Path.GetFileName(path), path, new Thickness(), File: path)).ToArray()
             : outline.Select(heading => new RailEntry(heading.Label, heading.Label, new Thickness(Math.Min(heading.Level - 1, 4) * 9, 0, 0, 0), heading)).ToArray();
         RailList.ItemsSource = entries;
         RailList.Visibility = entries.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         RailEmpty.Visibility = entries.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        RailEmpty.Text = currentFile is not null ? "This file has no headings." :
+        RailEmpty.Text = showOutline ? "This file has no headings." :
             preferences.RememberRecent ? "Files you open appear here." : "Recent files are turned off.";
     }
 
@@ -260,8 +306,8 @@ public partial class MainWindow : Window
         if (RailList.SelectedItem is not RailEntry entry) return;
         if (entry.Heading is { } heading)
         {
-            SetMode(source: false);
-            await Dispatcher.InvokeAsync(() => heading.Target.BringIntoView(), DispatcherPriority.Loaded);
+            if (mode == ViewMode.Edit) await SetMode(ViewMode.Read);
+            JumpTo(heading.Anchor);
         }
         else if (entry.File is { } path)
         {
@@ -274,28 +320,29 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Open a README or Markdown file",
-            Filter = "Markdown and text|*.md;*.markdown;*.mdown;*.mkd;*.mkdn;*.mdwn;*.mdtxt;*.txt;README;CHANGELOG;LICENSE|All files|*.*",
+            Title = "Open a document or source file",
+            Filter = FileFormats.OpenFilter,
             CheckFileExists = true
         };
         if (dialog.ShowDialog(this) == true) await OpenFile(dialog.FileName);
     }
 
-    private void OpenSample(object sender, RoutedEventArgs e)
+    private async void OpenSample(object sender, RoutedEventArgs e)
     {
+        if (!await CanLeaveDocument()) return;
         CancelLoad();
-        Display(new ReaderFile(Path.Combine(AppContext.BaseDirectory, "README.md"), Sample, false, Sample.Length),
+        Display(ReaderFile.Untitled("README.md", Sample),
             MarkdownView.Parse(Sample), null, sample: true);
     }
 
     private async void Reload(object sender, RoutedEventArgs e)
     {
-        if (currentFile is { } file && !isSample) await OpenFile(file.Path);
+        if (currentFile is { IsOnDisk: true } file) await OpenFile(file.Path);
     }
 
     private void RevealFile(object sender, RoutedEventArgs e)
     {
-        if (currentFile is not { } file || isSample) return;
+        if (currentFile is not { IsOnDisk: true } file) return;
         try
         {
             var explorer = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"));
@@ -316,47 +363,31 @@ public partial class MainWindow : Window
         if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } paths) await OpenFile(paths[0]);
     }
 
-    private void GoHome(object sender, RoutedEventArgs e)
+    private async void GoHome(object sender, RoutedEventArgs e)
     {
+        if (!await CanLeaveDocument()) return;
         CancelLoad();
+        CancelPreview();
         currentFile = null;
+        dirty = false;
         currentMarkdown = null;
         currentImages = new Dictionary<string, ImageSource>();
         searchIndex = null;
         outline = [];
         Preview.Document = null;
-        Source.Clear();
+        LoadEditor("", loadNow: false);
         FindBox.Clear();
         searchDelay.Stop();
         matches.Clear();
         FindBar.Visibility = DocumentArea.Visibility = Visibility.Collapsed;
         Welcome.Visibility = Visibility.Visible;
-        ReloadButton.IsEnabled = FindButton.IsEnabled = ReadButton.IsEnabled = SourceButton.IsEnabled = false;
+        ReloadButton.IsEnabled = FindButton.IsEnabled = false;
+        RefreshMode();
         Caption.Text = "Home";
         Title = "The Readme";
         Status.Text = "Ready to read";
         RefreshRail();
         FadeIn(Welcome);
-    }
-
-    private void ShowRendered(object sender, RoutedEventArgs e) => SetMode(source: false);
-    private void ShowSource(object sender, RoutedEventArgs e) => SetMode(source: true);
-    private void SetMode(bool source)
-    {
-        if (currentFile is null || showingSource == source) return;
-        showingSource = source;
-        if (source && Source.Text.Length == 0) Source.Text = currentFile.Text;
-        RefreshMode();
-        if (FindBar.Visibility == Visibility.Visible) Search();
-        FadeIn(source ? Source : Preview);
-    }
-
-    private void RefreshMode()
-    {
-        Preview.Visibility = showingSource ? Visibility.Collapsed : Visibility.Visible;
-        Source.Visibility = showingSource ? Visibility.Visible : Visibility.Collapsed;
-        ReadButton.Background = showingSource ? Brushes.Transparent : GetBrush("Hover");
-        SourceButton.Background = showingSource ? GetBrush("Hover") : Brushes.Transparent;
     }
 
     private void ToggleRail(object sender, RoutedEventArgs e)
@@ -371,6 +402,7 @@ public partial class MainWindow : Window
     {
         RailWidth.Width = new GridLength(preferences.ShowSidebar ? 219 : 0);
         Rail.Visibility = preferences.ShowSidebar ? Visibility.Visible : Visibility.Collapsed;
+        ArrangeSurface();
     }
 
     private void ToggleSettings(object sender, RoutedEventArgs e)
@@ -385,6 +417,18 @@ public partial class MainWindow : Window
         }
         else SettingsButton.Focus();
     }
+
+    private void DismissSettingsOnClick(object sender, MouseButtonEventArgs e) => DismissSettingsAt(e.GetPosition(this));
+    private void DismissSettingsOnDeactivate(object? sender, EventArgs e) => DismissSettings();
+
+    internal void DismissSettingsAt(Point position)
+    {
+        if (!SettingsPane.IsVisible) return;
+        bool Hit(FrameworkElement element) => new Rect(element.TranslatePoint(new Point(), this), element.RenderSize).Contains(position);
+        if (!Hit(SettingsPane) && !Hit(SettingsButton)) DismissSettings();
+    }
+
+    private void DismissSettings() => SettingsPane.Visibility = Visibility.Collapsed;
 
     private void OpenDefaultApps(object sender, RoutedEventArgs e)
     {
@@ -465,7 +509,7 @@ public partial class MainWindow : Window
             Source.Select(Source.SelectionStart, 0);
             return;
         }
-        string text = showingSource ? currentFile.Text : (searchIndex ??= new DocumentSearch(Preview.Document)).Text;
+        string text = mode != ViewMode.Read ? Source.Text : (searchIndex ??= new DocumentSearch(Preview.Document)).Text;
         int position = 0;
         while (matches.Count < 1000 && (position = text.IndexOf(query, position, StringComparison.OrdinalIgnoreCase)) >= 0)
         {
@@ -497,7 +541,7 @@ public partial class MainWindow : Window
         int start = matches[matchIndex];
         int length = FindBox.Text.Trim().Length;
         FindCount.Text = $"{matchIndex + 1} of {matches.Count}{(matches.Count == 1000 ? "+" : "")}";
-        if (showingSource)
+        if (mode != ViewMode.Read)
         {
             Source.Select(start, length);
             int line = Source.GetLineIndexFromCharacterIndex(start);
@@ -526,7 +570,7 @@ public partial class MainWindow : Window
             catch (Win32Exception ex) { Status.Text = ex.Message; }
             return;
         }
-        if (!isSample && currentFile is { } file && DocumentLinks.LocalPath(file.Path, destination) is { } path && ReaderFile.Supports(path))
+        if (currentFile is { IsOnDisk: true } file && DocumentLinks.LocalPath(file.Path, destination) is { } path && FileFormats.CanRead(path))
         {
             int hash = destination.IndexOf('#');
             await OpenFile(path, hash < 0 ? null : Uri.UnescapeDataString(destination[(hash + 1)..]));
@@ -536,11 +580,18 @@ public partial class MainWindow : Window
 
     private void SetZoom(int value, bool save = true)
     {
-        preferences.Zoom = Math.Clamp(value, 80, 160);
+        preferences.Zoom = Math.Clamp(value, 60, 220);
         Preview.Zoom = preferences.Zoom;
         Source.FontSize = 15.0 * preferences.Zoom / 100;
         ZoomLabel.Content = preferences.Zoom + "%";
         if (save) preferences.Save();
+    }
+
+    private void ZoomWithWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!DocumentArea.IsVisible || SettingsPane.IsVisible || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return;
+        SetZoom(preferences.Zoom + (e.Delta > 0 ? 10 : -10));
+        e.Handled = true;
     }
 
     private void ZoomIn(object sender, RoutedEventArgs e) => SetZoom(preferences.Zoom + 10);
@@ -552,18 +603,26 @@ public partial class MainWindow : Window
         if (e.Key == Key.Escape)
         {
             if (SettingsPane.IsVisible) ToggleSettings(sender, e);
+            else if (LineEntry.IsVisible) { LineEntry.Visibility = Visibility.Collapsed; Source.Focus(); }
             else if (FindBar.IsVisible) CloseFind(sender, e);
             else return;
         }
         else if (e.Key == Key.Enter && FindBox.IsKeyboardFocusWithin) MoveMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1);
+        else if (e.Key == Key.Enter && LineBox.IsKeyboardFocusWithin) GoToLine();
         else if (e.Key == Key.F5) Reload(sender, e);
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             switch (e.Key)
             {
                 case Key.O: PickFile(sender, e); break;
+                case Key.N: NewDocument(sender, e); break;
                 case Key.F: OpenFind(sender, e); break;
+                case Key.G: OpenGoTo(sender, e); break;
+                case Key.S when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): SaveAsClicked(sender, e); break;
+                case Key.S: SaveClicked(sender, e); break;
+                case Key.B when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): ApplyInline("**"); break;
                 case Key.B: ToggleRail(sender, e); break;
+                case Key.I: ApplyInline("*"); break;
                 case Key.OemComma: ToggleSettings(sender, e); break;
                 case Key.OemPlus or Key.Add: ZoomIn(sender, e); break;
                 case Key.OemMinus or Key.Subtract: ZoomOut(sender, e); break;

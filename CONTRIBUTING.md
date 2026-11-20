@@ -22,6 +22,6 @@ To build the x64 and Arm64 EXE installers, run `./scripts/Build-Installer.ps1`. 
 3. Open a pull request to `main` and let Windows CI run on the final commit.
 4. Resolve review conversations and merge through GitHub when required checks pass.
 
-Every source, documentation, or workflow change follows this process. A maintainer can tag a tested commit on `main` when the project version changes. The release workflow rebuilds and tests the installers before publishing the assets and their SHA-256 checksums.
+Every source, documentation, or workflow change follows this process. A maintainer can tag a tested commit on `main` with the version from `TheReadme.csproj`. The release workflow rebuilds and tests both installers before publishing the assets and their SHA-256 checksums. Versions with a suffix such as `-alpha.1` publish as prereleases and leave the stable download pointing at the latest stable version.
 
 By submitting a contribution, you license it under [Apache License 2.0](LICENSE). Follow the [code of conduct](CODE_OF_CONDUCT.md) and use the [private reporting procedure](SECURITY.md) for vulnerabilities.

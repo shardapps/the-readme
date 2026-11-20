@@ -84,6 +84,8 @@ Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: stri
 Root: HKCU; Subkey: "Software\Classes\.mdtxt\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".txt"; ValueData: "{#ProgId}"
 Root: HKCU; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".text"; ValueData: "{#ProgId}"
+Root: HKCU; Subkey: "Software\Classes\.text\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\Readme.exe"; Description: "Launch The Readme"; Flags: nowait postinstall skipifsilent

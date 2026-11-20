@@ -8,6 +8,8 @@ Use a [private GitHub security advisory](https://github.com/shardapps/the-readme
 
 ## Document handling
 
-The reader limits text files to 2 MB and bounds preview structure and local image decoding. External images use their alternative text. The reader renders Markdown into native controls with no browser engine or active HTML. Activating an HTTP, HTTPS, or email link opens it through Windows. Relative document links apply to supported files inside the document’s folder.
+The reader limits text files to 2 MB and bounds preview structure and local image decoding. External images use their alternative text. The reader renders Markdown into native controls with no browser engine or active HTML. Source files and scripts open as inert, read-only text. Activating an HTTP, HTTPS, or email link opens it through Windows. Relative document links apply to supported files inside the document’s folder.
+
+Saving is available for Markdown and plain text. The app writes to a temporary file in the destination directory before replacing a document, and checks the original file for disk changes before saving in place.
 
 The installer registers its own file types, offers an opt-in per-user PATH addition, and leaves default selection to Windows Settings.
