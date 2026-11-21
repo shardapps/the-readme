@@ -143,7 +143,9 @@ The source editor supports undo, search, line wrapping, **Go to line**, and opti
 
 </details>
 
-![Python source workspace with search, wrapping, and go-to-line controls](docs/screenshots/source.png)
+| HDL | Python |
+| --- | --- |
+| ![Editable HDL example with Save, Save As, and Go to line](docs/screenshots/hdl.png) | ![Python editor with line wrapping and Go to line](docs/screenshots/source.png) |
 
 **What does Split do in the Markdown editor?** It shows your draft and a live rendered preview together. Bold, italic, headings, code blocks, tables, and task lists are available as Markdown syntax. The toolbar offers shortcuts for common styles.
 
