@@ -12,9 +12,11 @@
 [![Latest release](https://img.shields.io/github/v/release/shardapps/the-readme?color=6243bd)](https://github.com/shardapps/the-readme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-6243bd)](LICENSE)
 
-[Download editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.2) · [Download stable viewer](https://github.com/shardapps/the-readme/releases/latest) · [See all formats](#supported-file-formats) · [Keyboard shortcuts](#keyboard-shortcuts)
+[Browse preview releases](https://github.com/shardapps/the-readme/releases) · [Download stable viewer](https://github.com/shardapps/the-readme/releases/latest) · [See all formats](#supported-file-formats) · [Keyboard shortcuts](#keyboard-shortcuts)
 
 </div>
+
+Source editing, the HDL example, and Markdown underline require alpha 2 or later.
 
 The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md`, plain text, and source code. Preview Markdown as you type, or work directly in Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats.
 
@@ -47,7 +49,7 @@ The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Wind
 ## Install on Windows
 
 1. Install the official [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) for your architecture if you do not already have it.
-2. Download the matching x64 or Arm64 setup EXE. In Windows Settings, see **System → About → System type** to check your architecture. [Editor alpha](https://github.com/shardapps/the-readme/releases/tag/v1.1.0-alpha.2) · [Stable viewer](https://github.com/shardapps/the-readme/releases/latest)
+2. Download the matching x64 or Arm64 setup EXE. In Windows Settings, see **System → About → System type** to check your architecture. [Preview releases](https://github.com/shardapps/the-readme/releases) · [Stable viewer](https://github.com/shardapps/the-readme/releases/latest)
 3. Run setup and launch **The Readme** from Start. Setup installs for the current Windows user. The alpha upgrades an existing The Readme installation. Releases include a `SHA256SUMS.txt` file for verifying downloads.
 
 In **Settings → Windows integration**, select **Set as default app** to open Windows Default Apps. Assign the file extensions you want, including `.md`, `.markdown`, or `.hdl`. Windows manages defaults by file type. Open extensionless files using drag and drop, **Open file**, or the terminal.
