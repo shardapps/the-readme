@@ -4,10 +4,7 @@ namespace TheReadme;
 
 public enum FileKind { Markdown, PlainText, Source }
 
-public sealed record FileFormat(FileKind Kind, string Label)
-{
-    public bool CanEdit => Kind != FileKind.Source;
-}
+public sealed record FileFormat(FileKind Kind, string Label);
 
 public static class FileFormats
 {

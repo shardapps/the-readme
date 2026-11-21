@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0-alpha.2
+
+- Edit and save HDL, Python, C, C++, Java, and other supported source or text files. Save As starts with the original file type.
+- Try the built-in HDL example and choose whether the editor keeps indentation on new source lines.
+- Underline text in Markdown using the `++text++` extension, with a matching live preview.
+- Use subtler view transitions or turn them off in Settings.
+
 ## 1.1.0-alpha.1
 
 - Added Markdown and plain-text editing, portable Markdown formatting, live split preview, undo and redo, and Save As.

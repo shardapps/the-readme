@@ -60,10 +60,10 @@ Name: "{userdesktop}\The Readme"; Filename: "{app}\Readme.exe"; Tasks: desktopic
 [Registry]
 Root: HKCU; Subkey: "{#StateKey}"; ValueType: string; ValueName: "InstallDirectory"; ValueData: "{app}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "{#StateKey}\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "{#Product}"
-Root: HKCU; Subkey: "{#StateKey}\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Read Markdown, README, and plain-text documents."
+Root: HKCU; Subkey: "{#StateKey}\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Edit Markdown, plain text, and source files."
 Root: HKCU; Subkey: "{#StateKey}\Capabilities"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\Readme.exe,0"
 Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "{#Product}"; ValueData: "{#StateKey}\Capabilities"; Flags: uninsdeletevalue
-Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueData: "README and Markdown document"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueData: "The Readme document"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}\DefaultIcon"; ValueType: string; ValueData: "{app}\Readme.exe,0"
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}\shell\open\command"; ValueType: string; ValueData: """{app}\Readme.exe"" -- ""%1"""
 Root: HKCU; Subkey: "Software\Classes\Applications\Readme.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#Product}"; Flags: uninsdeletekey
@@ -86,6 +86,8 @@ Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: stri
 Root: HKCU; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".text"; ValueData: "{#ProgId}"
 Root: HKCU; Subkey: "Software\Classes\.text\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "{#StateKey}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".hdl"; ValueData: "{#ProgId}"
+Root: HKCU; Subkey: "Software\Classes\.hdl\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\Readme.exe"; Description: "Launch The Readme"; Flags: nowait postinstall skipifsilent

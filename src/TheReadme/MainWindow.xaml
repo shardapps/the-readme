@@ -242,13 +242,14 @@
                   </DockPanel>
                 </Border>
                 <Border Grid.Column="2" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Padding="16,13">
-                  <DockPanel>
-                    <Button DockPanel.Dock="Bottom" Content="Open a Python example →" Click="OpenCodeSample" HorizontalAlignment="Left" Margin="-10,7,0,0"/>
-                    <StackPanel>
-                      <TextBlock Text="Source &amp; data" FontSize="16" FontWeight="SemiBold"/>
-                      <TextBlock Text="Read Python, C++, Java, HDL, JSON, and more." Foreground="{DynamicResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                    </StackPanel>
-                  </DockPanel>
+                  <StackPanel>
+                    <TextBlock Text="Source &amp; data" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Edit Python, C++, Java, HDL, JSON, and more." Foreground="{DynamicResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <WrapPanel Margin="-10,7,0,0">
+                      <Button Content="Open a Python example →" Click="OpenCodeSample"/>
+                      <Button Content="Open an HDL example →" Tag="HDL" Click="OpenCodeSample"/>
+                    </WrapPanel>
+                  </StackPanel>
                 </Border>
               </Grid>
               <Border Grid.Row="2" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="13" Margin="0,12,0,0" Padding="16,11">
@@ -295,6 +296,9 @@
                 <StackPanel x:Name="FormattingTools" Orientation="Horizontal">
                   <Button x:Name="BoldButton" Content="B" FontWeight="Bold" Tag="**" Click="FormatInline" ToolTip="Bold (Ctrl+Shift+B)" AutomationProperties.Name="Toggle bold"/>
                   <Button Content="I" FontStyle="Italic" Tag="*" Click="FormatInline" ToolTip="Italic (Ctrl+I)" AutomationProperties.Name="Toggle italic"/>
+                  <Button x:Name="UnderlineButton" Tag="++" Click="FormatInline" ToolTip="Underline (Ctrl+U). Uses the ++ Markdown extension." AutomationProperties.Name="Toggle underline">
+                    <TextBlock Text="U" TextDecorations="Underline"/>
+                  </Button>
                   <Button Content="Strike" Tag="~~" Click="FormatInline" ToolTip="Strikethrough" AutomationProperties.Name="Toggle strikethrough"/>
                   <Button Content="Code" Tag="`" Click="FormatInline" ToolTip="Inline code" AutomationProperties.Name="Toggle inline code"/>
                   <Button Content="Text style ▾" Click="OpenHeadingMenu" ToolTip="Change heading size or return to body text" AutomationProperties.Name="Text style">
@@ -343,6 +347,10 @@
                 </DockPanel>
                 <TextBlock Text="Reading theme" FontWeight="SemiBold" Margin="0,0,0,6"/>
                 <WrapPanel x:Name="ThemeButtons" Margin="0,0,0,12"/>
+                <Separator Background="{DynamicResource Line}"/>
+                <TextBlock Text="Editing and motion" FontWeight="SemiBold" Margin="0,7,0,5"/>
+                <CheckBox x:Name="AutoIndentToggle" Content="Keep indentation on new code lines" Foreground="{DynamicResource Ink}" Margin="2,2,0,6" Click="ChangeEditorOptions"/>
+                <CheckBox x:Name="MotionToggle" Content="Animate transitions" Foreground="{DynamicResource Ink}" Margin="2,2,0,12" Click="ChangeEditorOptions"/>
                 <Separator Background="{DynamicResource Line}"/>
                 <TextBlock Text="Windows integration" FontWeight="SemiBold" Margin="0,7,0,1"/>
                 <Button Content="Set as default app ↗" Click="OpenDefaultApps" HorizontalContentAlignment="Left" Padding="4,5"/>

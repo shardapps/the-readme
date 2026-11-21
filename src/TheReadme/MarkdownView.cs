@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Markdig;
 using Markdig.Extensions.AutoIdentifiers;
+using Markdig.Extensions.EmphasisExtras;
 using Markdig.Extensions.Tables;
 using Markdig.Extensions.TaskLists;
 using Markdig.Renderers.Html;
@@ -19,7 +20,8 @@ public sealed record OutlineItem(string Label, int Level, Wpf.Paragraph Target, 
 public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IReadOnlyDictionary<string, ImageSource> images, Action<string> openLink)
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
-        .UseAutoIdentifiers(AutoIdentifierOptions.GitHub).UsePipeTables().UseTaskLists().UseAutoLinks().UseEmphasisExtras().DisableHtml().Build();
+        .UseAutoIdentifiers(AutoIdentifierOptions.GitHub).UsePipeTables().UseTaskLists().UseAutoLinks()
+        .UseEmphasisExtras(EmphasisExtraOptions.Default | EmphasisExtraOptions.Inserted).DisableHtml().Build();
     private static readonly FontFamily Mono = new("Cascadia Mono, Consolas");
     private readonly List<OutlineItem> outline = [];
     private readonly HashSet<string> anchors = new(StringComparer.OrdinalIgnoreCase);
@@ -212,6 +214,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
                 case EmphasisInline emphasis:
                     var formatted = new Span();
                     if (emphasis.DelimiterChar == '~') formatted.TextDecorations = TextDecorations.Strikethrough;
+                    else if (emphasis.DelimiterChar == '+') formatted.TextDecorations = TextDecorations.Underline;
                     else if (emphasis.DelimiterCount == 2) formatted.FontWeight = FontWeights.Bold;
                     else formatted.FontStyle = FontStyles.Italic;
                     WriteInlines(emphasis, formatted.Inlines, depth + 1, insideLink);

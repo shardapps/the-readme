@@ -38,8 +38,7 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
             Encoding encoding = UnicodeEncodings.FirstOrDefault(item => buffer.AsSpan(0, count).StartsWith(item.Preamble)) ?? Utf8;
             int skip = encoding.Preamble.Length;
             string content = encoding.GetString(buffer, skip, count - skip);
-            if (content.Any(character => char.IsControl(character) && character is not ('\t' or '\r' or '\n' or '\f' or '\u001b')))
-                throw new IOException("This file contains binary data. Choose a text document.");
+            EnsureText(content);
             return new ReaderFile(fullPath, content, FileFormats.ForPath(fullPath), count, encoding,
                 Convert.ToHexString(SHA256.HashData(buffer.AsSpan(0, count))));
         }
@@ -50,13 +49,14 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
     public async Task<ReaderFile> SaveAsync(string destination, string draft, bool overwrite)
     {
         string path = LocalPath(destination);
+        if (!FileFormats.CanRead(path)) throw new IOException("Choose a filename for a text or source file.");
         FileFormat format = FileFormats.ForPath(path);
-        if (!Format.CanEdit || !format.CanEdit) throw new IOException("Choose a Markdown or plain-text document for saving.");
         bool sameFile = IsOnDisk && path.Equals(Path, StringComparison.OrdinalIgnoreCase);
         Encoding encoding = Encoding ?? Utf8;
         string content = PreserveLineEndings(Text, draft);
         int size = checked(encoding.Preamble.Length + encoding.GetByteCount(content));
         if (size > MaxBytes) throw new IOException("This document exceeds the 2 MB save limit.");
+        EnsureText(content);
         byte[] bytes = new byte[size];
         encoding.Preamble.CopyTo(bytes);
         encoding.GetBytes(content.AsSpan(), bytes.AsSpan(encoding.Preamble.Length));
@@ -83,6 +83,12 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
         return new ReaderFile(path, content, format, bytes.Length, encoding, Convert.ToHexString(SHA256.HashData(bytes)));
+    }
+
+    private static void EnsureText(string content)
+    {
+        if (content.Any(character => char.IsControl(character) && character is not ('\t' or '\r' or '\n' or '\f' or '\u001b')))
+            throw new IOException("This file contains binary data. Choose a text document.");
     }
 
     private static string PreserveLineEndings(string original, string draft)
