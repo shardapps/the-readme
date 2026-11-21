@@ -18,6 +18,8 @@ public sealed class ReaderPreferences
     public bool RememberRecent { get; set; } = true;
     public bool WrapCode { get; set; }
     public bool WrapText { get; set; } = true;
+    public bool AutoIndentSource { get; set; } = true;
+    public bool AnimateTransitions { get; set; } = true;
     public List<string> Recent { get; set; } = [];
 
     public static ReaderPreferences Load()

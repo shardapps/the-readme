@@ -51,7 +51,7 @@ public partial class MainWindow : Window
 
         Press **Ctrl+B** to toggle the outline. Zoom with **Ctrl+mouse wheel** or the toolbar buttons. The text reflows when you change the window size or zoom.
 
-        Open a source file such as `.py`, `.cpp`, `.java`, or `.hdl` to search, copy, and jump to a line in read-only mode.
+        Edit a source file such as `.py`, `.cpp`, `.java`, or `.hdl` with search, wrapping, and Go to line.
 
         ## Windows integration
 
@@ -96,6 +96,8 @@ public partial class MainWindow : Window
         searchDelay.Tick += (_, _) => { searchDelay.Stop(); Search(); };
         previewDelay.Tick += (_, _) => { previewDelay.Stop(); _ = RefreshDraftPreview(); };
         RecentToggle.IsChecked = preferences.RememberRecent;
+        AutoIndentToggle.IsChecked = preferences.AutoIndentSource;
+        MotionToggle.IsChecked = preferences.AnimateTransitions;
         foreach (string theme in Themes.Keys.Prepend("System"))
         {
             var label = new StackPanel { Orientation = Orientation.Horizontal };
@@ -479,6 +481,13 @@ public partial class MainWindow : Window
         RefreshRail();
     }
 
+    private void ChangeEditorOptions(object sender, RoutedEventArgs e)
+    {
+        preferences.AutoIndentSource = AutoIndentToggle.IsChecked == true;
+        preferences.AnimateTransitions = MotionToggle.IsChecked == true;
+        preferences.Save();
+    }
+
     private void ClearRecent(object sender, RoutedEventArgs e)
     {
         preferences.Recent.Clear();
@@ -622,6 +631,11 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.Enter && FindBox.IsKeyboardFocusWithin) MoveMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1);
         else if (e.Key == Key.Enter && LineBox.IsKeyboardFocusWithin) GoToLine();
+        else if (e.Key == Key.Enter && Source.IsKeyboardFocusWithin && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            e.Handled = AutoIndentSource();
+            return;
+        }
         else if (e.Key == Key.F5) Reload(sender, e);
         else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
@@ -635,7 +649,8 @@ public partial class MainWindow : Window
                 case Key.S: SaveClicked(sender, e); break;
                 case Key.B when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): ApplyInline("**"); break;
                 case Key.B: ToggleRail(sender, e); break;
-                case Key.I: ApplyInline("*"); break;
+                case Key.I when Source.IsKeyboardFocusWithin: ApplyInline("*"); break;
+                case Key.U when Source.IsKeyboardFocusWithin: ApplyInline("++"); break;
                 case Key.OemComma: ToggleSettings(sender, e); break;
                 case Key.OemPlus or Key.Add: ZoomIn(sender, e); break;
                 case Key.OemMinus or Key.Subtract: ZoomOut(sender, e); break;
@@ -655,10 +670,10 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private static void FadeIn(UIElement element)
+    private void FadeIn(UIElement element)
     {
-        if (!SystemParameters.ClientAreaAnimation || SystemParameters.HighContrast) return;
-        element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.72, 1, TimeSpan.FromMilliseconds(175))
+        if (!preferences.AnimateTransitions || !SystemParameters.ClientAreaAnimation || SystemParameters.HighContrast) return;
+        element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(170))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.Stop

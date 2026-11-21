@@ -27,6 +27,20 @@ public partial class MainWindow
             print(f"{size} words: {reading_time(size)} minute(s)")
         """";
 
+    private const string HdlSample = """
+        // A two-input selector built from elementary gates.
+        CHIP SelectInput {
+            IN a, b, selectB;
+            OUT out;
+
+            PARTS:
+            Not(in=selectB, out=selectA);
+            And(a=a, b=selectA, out=fromA);
+            And(a=b, b=selectB, out=fromB);
+            Or(a=fromA, b=fromB, out=out);
+        }
+        """;
+
     private readonly DispatcherTimer previewDelay = new() { Interval = TimeSpan.FromMilliseconds(350) };
     private ViewMode mode;
     private CancellationTokenSource? previewWork;
@@ -57,12 +71,12 @@ public partial class MainWindow
 
     private void SourceChanged(object sender, TextChangedEventArgs e)
     {
-        if (settingSource || currentFile?.Format.CanEdit != true) return;
+        if (settingSource || currentFile is not { } file) return;
         CancelLoad();
         CancelPreview();
         dirty = !string.Equals(Source.Text, savedText, StringComparison.Ordinal);
         RefreshDocumentLabel();
-        Status.Text = dirty ? currentFile.Format.Label + " · Unsaved changes" : FileStatus(currentFile);
+        Status.Text = dirty ? file.Format.Label + " · Unsaved changes" : FileStatus(file);
         if (mode == ViewMode.Split) previewDelay.Start();
         if (FindBar.IsVisible) SearchChanged(sender, e);
     }
@@ -77,9 +91,11 @@ public partial class MainWindow
 
     private async void OpenCodeSample(object sender, RoutedEventArgs e)
     {
+        bool hdl = sender is Button { Tag: "HDL" };
         if (!await CanLeaveDocument()) return;
         CancelLoad();
-        Display(ReaderFile.Untitled("reading_time.py", CodeSample), null, null, sample: true);
+        Display(hdl ? ReaderFile.Untitled("SelectInput.hdl", HdlSample) : ReaderFile.Untitled("reading_time.py", CodeSample),
+            null, null, sample: true);
     }
 
     private async void ShowRendered(object sender, RoutedEventArgs e) => await SetMode(ViewMode.Read);
@@ -90,28 +106,30 @@ public partial class MainWindow
     {
         if (currentFile is null || mode == requested || (requested != ViewMode.Edit && currentFile.Format.Kind != FileKind.Markdown))
             return;
+        ViewMode previous = mode;
         mode = requested;
         if (mode != ViewMode.Read && !sourceLoaded) LoadEditor(currentFile.Text, loadNow: true);
         LineEntry.Visibility = Visibility.Collapsed;
         RefreshMode();
+        if (previous == ViewMode.Read) FadeIn(Source);
+        if (previous == ViewMode.Edit) FadeIn(Preview);
         if (mode != ViewMode.Edit) await RefreshDraftPreview();
         if (mode == requested && FindBar.IsVisible) Search();
-        FadeIn(mode == ViewMode.Read ? Preview : Source);
     }
 
     private void RefreshMode()
     {
         bool markdown = currentFile?.Format.Kind == FileKind.Markdown;
-        bool canEdit = currentFile?.Format.CanEdit == true;
         ViewModes.Visibility = markdown ? Visibility.Visible : Visibility.Collapsed;
         ReadButton.IsEnabled = SourceButton.IsEnabled = SplitButton.IsEnabled = markdown;
         Preview.Visibility = markdown && mode != ViewMode.Edit ? Visibility.Visible : Visibility.Collapsed;
         Source.Visibility = currentFile is not null && mode != ViewMode.Read ? Visibility.Visible : Visibility.Collapsed;
         EditorTools.Visibility = Source.Visibility;
         FormattingTools.Visibility = markdown ? Visibility.Visible : Visibility.Collapsed;
-        Source.IsReadOnly = !canEdit || saving;
-        SourceKind.Text = canEdit ? (markdown ? "" : "Plain text") : currentFile is { } file ? file.Format.Label + " · Read only" : "";
-        AutomationProperties.SetName(Source, canEdit ? "Document editor" : "Read-only source");
+        Source.IsReadOnly = currentFile is null || saving;
+        SourceKind.Visibility = markdown ? Visibility.Collapsed : Visibility.Visible;
+        SourceKind.Text = currentFile?.Format.Label ?? "";
+        AutomationProperties.SetName(Source, currentFile?.Format.Kind == FileKind.Source ? "Source editor" : "Document editor");
         ReadButton.Background = mode == ViewMode.Read ? GetBrush("Hover") : Brushes.Transparent;
         SourceButton.Background = mode == ViewMode.Edit ? GetBrush("Hover") : Brushes.Transparent;
         SplitButton.Background = mode == ViewMode.Split ? GetBrush("Hover") : Brushes.Transparent;
@@ -190,7 +208,7 @@ public partial class MainWindow
         if (currentFile is not { } file) return;
         Caption.Text = file.Name + (dirty ? "  ●" : "");
         Title = file.Name + (dirty ? " *" : "") + " · The Readme";
-        SaveButton.Visibility = SaveAsButton.Visibility = file.Format.CanEdit ? Visibility.Visible : Visibility.Collapsed;
+        SaveButton.Visibility = SaveAsButton.Visibility = Visibility.Visible;
         SaveButton.IsEnabled = !saving && (dirty || !file.IsOnDisk);
         SaveAsButton.IsEnabled = !saving;
     }
@@ -202,17 +220,19 @@ public partial class MainWindow
 
     private async Task<bool> SaveCurrent(bool saveAs)
     {
-        if (currentFile is not { Format.CanEdit: true } file || saving) return false;
+        if (currentFile is not { } file || saving) return false;
         if (!saveAs && file.IsOnDisk)
             return !dirty || await SaveDocument(file.Path);
 
         CancelLoad();
+        bool source = file.Format.Kind == FileKind.Source;
         var dialog = new SaveFileDialog
         {
             Title = "Save your document",
-            FileName = Path.GetFileNameWithoutExtension(file.Name),
+            FileName = source ? file.Name : Path.GetFileNameWithoutExtension(file.Name),
             InitialDirectory = file.IsOnDisk ? Path.GetDirectoryName(file.Path) : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            Filter = "Markdown (*.md)|*.md|Plain text (*.txt)|*.txt",
+            Filter = source ? "All files (*.*)|*.*" : "Markdown (*.md)|*.md|Plain text (*.txt)|*.txt",
+            DefaultExt = source ? Path.GetExtension(file.Name) : "",
             FilterIndex = file.Format.Kind == FileKind.PlainText ? 2 : 1,
             AddExtension = true,
             OverwritePrompt = true
@@ -223,7 +243,7 @@ public partial class MainWindow
 
     internal async Task<bool> SaveDocument(string destination, bool overwrite = false)
     {
-        if (currentFile is not { Format.CanEdit: true } file || saving) return false;
+        if (currentFile is not { } file || saving) return false;
         saving = true;
         CancelLoad();
         string draft = sourceLoaded ? Source.Text : file.Text;
@@ -312,7 +332,7 @@ public partial class MainWindow
     private void ApplyInline(string marker)
     {
         if (currentFile?.Format.Kind != FileKind.Markdown || mode == ViewMode.Read || Source.IsReadOnly) return;
-        string placeholder = marker switch { "**" => "bold text", "*" => "italic text", "~~" => "text", _ => "code" };
+        string placeholder = marker switch { "**" => "bold text", "*" => "italic text", "`" => "code", _ => "text" };
         ApplyEdit(MarkdownEdits.Inline(Source.Text, Source.SelectionStart, Source.SelectionLength, marker, placeholder));
     }
 
@@ -337,6 +357,22 @@ public partial class MainWindow
         Source.SelectedText = edit.Text;
         Source.Focus();
         Source.Select(edit.SelectionStart, edit.SelectionLength);
+    }
+
+    internal bool AutoIndentSource()
+    {
+        if (!preferences.AutoIndentSource || currentFile?.Format.Kind != FileKind.Source || Source.IsReadOnly) return false;
+        int start = Source.SelectionStart;
+        string text = Source.Text;
+        var beforeCaret = text.AsSpan(0, start);
+        var line = beforeCaret[(beforeCaret.LastIndexOfAny('\r', '\n') + 1)..];
+        int length = 0;
+        while (length < line.Length && line[length] is ' ' or '\t') length++;
+        if (length == 0) return false;
+
+        string insertion = Environment.NewLine + line[..length].ToString();
+        ApplyEdit(new(start, Source.SelectionLength, insertion, start + insertion.Length, 0));
+        return true;
     }
 
     private void ToggleWrap(object sender, RoutedEventArgs e)

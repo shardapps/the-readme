@@ -160,7 +160,7 @@ internal static class Program
         Require(((TextBlock)window.FindName("FindCount")).Text == "1 of 1", "Find UI matches text");
         Require(preview.Selection?.Text == "needle", "Find UI selects visible text");
 
-        await CheckWorkspace(window, path, fixture, pythonPath, screenshots, token);
+        await CheckWorkspace(window, prefs, path, fixture, pythonPath, screenshots, token);
 
         if (screenshots is not null)
         {
@@ -195,13 +195,16 @@ internal static class Program
             string path = Path.Combine(temporary, name);
             File.WriteAllText(path, content);
             var item = await ReaderFile.OpenAsync(path, token);
-            Require(item.Format.Kind == FileKind.Source && item.Format.Label == label && item.Text == content, $"Read-only detection for {name}");
+            Require(item.Format.Kind == FileKind.Source && item.Format.Label == label && item.Text == content, $"Source detection for {name}");
+            var edited = await item.SaveAsync(path, content + "\nEdited", overwrite: false);
+            Require(edited.Format == item.Format && File.ReadAllText(path) == content + "\nEdited", $"Source round-trip for {name}");
         }
         foreach (string suffix in new[] { ".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn", ".mdtxt", ".txt", ".text" })
         {
             string path = Path.Combine(temporary, "Editable" + suffix);
             File.WriteAllText(path, content);
-            Require((await ReaderFile.OpenAsync(path, token)).Format.CanEdit, $"Editable detection for {suffix}");
+            FileKind expected = suffix is ".txt" or ".text" ? FileKind.PlainText : FileKind.Markdown;
+            Require((await ReaderFile.OpenAsync(path, token)).Format.Kind == expected, $"Document detection for {suffix}");
         }
 
         string unknownBinary = Path.Combine(temporary, "hidden.unknown");
@@ -222,6 +225,20 @@ internal static class Program
         string converted = Path.Combine(temporary, "Converted.md");
         var copy = await saved.SaveAsync(converted, "A Markdown copy", overwrite: false);
         Require(copy.Format.Kind == FileKind.Markdown && File.Exists(converted), "Save As converts text to Markdown");
+        string hdl = Path.Combine(temporary, "LogicCopy.hdl");
+        var logic = await ReaderFile.OpenAsync(Path.Combine(temporary, "logic.hdl"), token);
+        const string chip = "CHIP Logic {\n    IN in;\n    OUT out;\n}";
+        Require((await logic.SaveAsync(hdl, chip, overwrite: false)).Format.Label == "HDL" && File.ReadAllText(hdl) == chip, "Save As keeps HDL");
+        string protectedBinary = Path.Combine(temporary, "protected.exe");
+        byte[] binary = [77, 90, 0];
+        await File.WriteAllBytesAsync(protectedBinary, binary, token);
+        try
+        {
+            await logic.SaveAsync(protectedBinary, chip, overwrite: true);
+            throw new InvalidOperationException("Unexpected save to an executable filename.");
+        }
+        catch (IOException) { }
+        Require(File.ReadAllBytes(protectedBinary).SequenceEqual(binary), "Saving source cannot replace a binary file");
         Require(!Directory.EnumerateFiles(temporary, ".readme-*.tmp").Any(), "Save removes temporary files after success and failure");
         Require(MarkdownEdits.OffsetOfLine(content, 4) == content.IndexOf("fourth", StringComparison.Ordinal), "Logical line navigation");
         Require(MarkdownEdits.Heading("## Small", 4, 0, 1).Text == "# Small", "Heading format changes sizing");
@@ -231,7 +248,8 @@ internal static class Program
         return Path.Combine(temporary, "example.py");
     }
 
-    private static async Task CheckWorkspace(MainWindow window, string path, string fixture, string pythonPath, string? screenshots, CancellationToken token)
+    private static async Task CheckWorkspace(MainWindow window, ReaderPreferences prefs, string path, string fixture, string pythonPath,
+        string? screenshots, CancellationToken token)
     {
         T Control<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
         void Click(string name) => Control<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -301,6 +319,13 @@ internal static class Program
         Require(editor.Text.Contains("**Styled**") && window.Title.Contains(" *"), "Bold edits Markdown and marks the draft");
         Click("BoldButton");
         Require(editor.Text == fixture, "Bold is reversible");
+        editor.Select(selected, "Styled".Length);
+        Click("UnderlineButton");
+        Require(editor.Text.Contains("++Styled++"), "Underline inserts Markdown markup");
+        await WaitUntil(() => preview.Document.Blocks.OfType<Paragraph>().SelectMany(p => p.Inlines.OfType<Span>())
+            .Any(span => span.TextDecorations?.Any(decoration => decoration.Location == TextDecorationLocation.Underline) == true), token);
+        Click("UnderlineButton");
+        Require(editor.Text == fixture, "Underline is reversible");
         editor.AppendText("\n\n## Live alpha heading");
         await WaitUntil(() => new DocumentSearch(preview.Document).Text.Contains("Live alpha heading"), token);
         Require(window.Title.Contains(" *"), "Live edit stays unsaved until saved");
@@ -317,15 +342,34 @@ internal static class Program
         Require(File.ReadAllText(path).Contains("Live alpha heading") && !window.Title.Contains(" *"), "Saved contents and dirty state");
         Require(window.Title.StartsWith("README", StringComparison.Ordinal), "Saving cancels a pending document switch");
         await window.OpenFile(pythonPath);
-        Require(editor.IsReadOnly && !Control<StackPanel>("FormattingTools").IsVisible && !Control<Button>("SaveButton").IsVisible,
-            "Source files expose only read-only tools");
-        Require(!await window.SaveDocument(pythonPath), "Source files cannot be saved through the editor");
+        Require(!editor.IsReadOnly && !Control<StackPanel>("FormattingTools").IsVisible && Control<Button>("SaveButton").IsVisible,
+            "Source files can be edited and saved without Markdown tools");
         Click("GoToButton");
         Control<TextBox>("LineBox").Text = "3";
         Require(ClickButton(Control<StackPanel>("LineEntry"), "Go"), "Jump button exists");
         Require(editor.SelectionStart == editor.Text.IndexOf("third", StringComparison.Ordinal), "Go to jumps to a logical line");
         Click("WrapButton");
         Require(editor.TextWrapping == TextWrapping.Wrap, "Toggle wrapping for code");
+        string hdl = Path.Combine(Path.GetDirectoryName(path)!, "LogicCopy.hdl");
+        await window.OpenFile(hdl);
+        const string newLogic = "CHIP Logic {\n    PARTS:";
+        editor.Text = newLogic;
+        editor.Select(editor.Text.Length, 0);
+        Require(window.AutoIndentSource() && editor.Text == newLogic + Environment.NewLine + "    ", "Auto-indent preserves source whitespace");
+        Click("SettingsButton");
+        Control<CheckBox>("AutoIndentToggle").IsChecked = false;
+        Control<CheckBox>("AutoIndentToggle").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Control<CheckBox>("MotionToggle").IsChecked = false;
+        Control<CheckBox>("MotionToggle").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Require(!prefs.AutoIndentSource && !prefs.AnimateTransitions && !window.AutoIndentSource(), "Editing and motion preferences take effect");
+        window.DismissSettingsAt(new Point(8, 160));
+        editor.AppendText("Not(in=in, out=out);\n}");
+        window.ConfirmUnsavedForTest = () => MessageBoxResult.Cancel;
+        await window.OpenFile(pythonPath);
+        Require(window.Title.StartsWith("LogicCopy.hdl *", StringComparison.Ordinal), "Opening another file protects unsaved HDL");
+        window.ConfirmUnsavedForTest = null;
+        Require(await window.SaveDocument(hdl), "Save works for HDL in the editor");
+        Require(File.ReadAllText(hdl) == newLogic + "\n    Not(in=in, out=out);\n}", "HDL save preserves indentation and LF line endings");
         await window.OpenFile(Path.Combine(Path.GetDirectoryName(path)!, "Editable.text"));
         Require(!editor.IsReadOnly && !Control<StackPanel>("FormattingTools").IsVisible && Control<Button>("SaveButton").IsVisible,
             "Plain text is editable and has no Markdown formatting controls");
@@ -342,6 +386,12 @@ internal static class Program
             Control<TextBox>("FindBox").Text = "reading_time";
             await WaitUntil(() => Control<TextBlock>("FindCount").Text == "1 of 2", token);
             Capture(window, screenshots, "source-search.png");
+            Click("HomeButton");
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Require(ClickButton(welcome, "Open an HDL example →"), "Editable HDL example is accessible from Home");
+            await Layout();
+            Require(editor.Text.Contains("CHIP SelectInput") && !editor.IsReadOnly, "HDL example opens in the source editor");
+            Capture(window, screenshots, "hdl.png");
             Click("HomeButton");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             Require(ClickButton(welcome, "Try a sample →"), "Editor example is accessible from Home");

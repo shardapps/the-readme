@@ -25,7 +25,9 @@ try {
     $registration = Get-ItemPropertyValue -Path $registered -Name 'The Readme'
     if ($registration -ne 'Software\ShardApps\TheReadme\Capabilities') { throw 'Default Apps registration is missing.' }
     $associations = Get-ItemProperty "$integration\Capabilities\FileAssociations"
-    if ($associations.'.md' -ne $progId -or $associations.'.txt' -ne $progId) { throw 'File association registration is incomplete.' }
+    if ($associations.'.md' -ne $progId -or $associations.'.txt' -ne $progId -or $associations.'.hdl' -ne $progId) {
+        throw 'File association registration is incomplete.'
+    }
     $command = (Get-Item "HKCU:\Software\Classes\$progId\shell\open\command").GetValue('')
     if ($command -ne "`"$app`" -- `"%1`"") { throw 'File open command is not quoted correctly.' }
     if (!(In-UserPath)) { throw 'Setup did not add the requested user PATH entry.' }
