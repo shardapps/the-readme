@@ -15,6 +15,16 @@ dotnet run --project src/TheReadme
 
 To build the x64 and Arm64 EXE installers, run `./scripts/Build-Installer.ps1`. It installs the pinned Inno Setup compiler under `.tools/inno` if needed. Installer builds and hashes go into `artifacts/installers`. Pass `-Rid win-x64` to build just the x64 installer.
 
+To reproduce the memory check in a visible x64 Windows session, build and run the same configuration as the installer:
+
+```powershell
+dotnet restore tests/TheReadme.Smoke --locked-mode -p:RuntimeIdentifier=win-x64
+dotnet build tests/TheReadme.Smoke -c Release --no-restore -p:RuntimeIdentifier=win-x64
+./tests/TheReadme.Smoke/bin/Release/net48/win-x64/TheReadme.Smoke.exe --footprint x86
+```
+
+On Windows on Arm, substitute `win-arm64` and `arm64`. The check reports private working set, total working set, and private commit during reading and editing. It applies the 50,000,000-byte budget to private working set.
+
 ## Pull requests
 
 1. Create a branch from current `main`.

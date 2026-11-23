@@ -8,7 +8,7 @@
 
 Native Windows Markdown editor with live preview, Find and Replace, and source editing.
 
-**~2.6 MB per installer · 134 recognized extensions · 7 themes plus System**
+**Under 2 MB of app files per architecture · 134 recognized extensions · 7 themes plus System**
 
 [![Windows CI](https://github.com/shardapps/the-readme/actions/workflows/ci.yml/badge.svg)](https://github.com/shardapps/the-readme/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/shardapps/the-readme?color=6243bd)](https://github.com/shardapps/the-readme/releases/latest)
@@ -26,7 +26,7 @@ The Readme by Shard Apps is a free, Apache 2.0 desktop app for reading and editi
 
 ## A small download for Windows
 
-The GitHub x64 and Arm64 setup EXEs are about **2.6 MB each** and use the shared Microsoft .NET 10 Windows Desktop Runtime. The larger Microsoft Store install includes the runtime for a one-step installation. The app uses native Windows Presentation Foundation (WPF) controls. File reads and Markdown parsing run in the background.
+The final alpha uses the Windows desktop framework already installed on supported PCs. The Microsoft Store payload contains **under 2 MB of app files per architecture**. File reads and Markdown parsing run in the background. The app budgets image decoding and simplifies large transitions on lower-spec PCs and high-resolution displays. Windows CI measures private working set while opening, editing, searching, and maximizing a document.
 
 ## Write Markdown and plain text
 
@@ -46,6 +46,7 @@ The GitHub x64 and Arm64 setup EXEs are about **2.6 MB each** and use the shared
 
 - **Reflow at your window size.** Text fills the available reading area as you resize, maximize, or hide the outline. Zoom from 60% to 220% with the toolbar, keyboard, or Ctrl+mouse wheel.
 - **Find and jump.** Search the current view, replace one or every matching phrase in the editor, or use **Go to line** in source. Toggle the heading or recent files sidebar with Ctrl+B. It starts closed and remembers your choice.
+- **Navigate long previews.** Use the page controls or Ctrl+Page Up and Ctrl+Page Down. Find and the heading outline reach across pages, and Edit always opens the whole file.
 - **Choose a palette.** Select Lilac, Paper, Moss, Ocean, Midnight, Dusk, Graphite, or follow your system theme. Click outside Settings or press Escape to close it.
 - **Keep documents local.** The reader requires no sign-in and sends no telemetry. It displays the alt text for remote images and opens external links when activated. [Privacy policy](PRIVACY.md)
 
@@ -55,9 +56,10 @@ The GitHub x64 and Arm64 setup EXEs are about **2.6 MB each** and use the shared
 
 ## Install on Windows
 
-1. Install the official [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) for your architecture if you do not already have it.
-2. Download the matching x64 or Arm64 setup EXE. In Windows Settings, see **System → About → System type** to check your architecture. [Preview releases](https://github.com/shardapps/the-readme/releases) · [Stable viewer](https://github.com/shardapps/the-readme/releases/latest)
-3. Run setup and launch **The Readme** from Start. Setup installs for the current Windows user. The alpha upgrades an existing The Readme installation. Releases include a `SHA256SUMS.txt` file for verifying downloads.
+1. Download the matching x64 or Arm64 final alpha setup EXE. In Windows Settings, see **System → About → System type** to check your architecture. [Preview releases](https://github.com/shardapps/the-readme/releases)
+2. Run setup and launch **The Readme** from Start. Setup installs for the current Windows user. The alpha upgrades an existing The Readme installation. Releases include a `SHA256SUMS.txt` file for verifying downloads.
+
+The older stable viewer uses the [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). [Stable viewer](https://github.com/shardapps/the-readme/releases/latest)
 
 In **Settings → Windows integration**, select **Set as default app** to open Windows Default Apps. Assign the file extensions you want, including `.md`, `.markdown`, or `.hdl`. Windows manages defaults by file type. Open extensionless files using drag and drop, **Open file**, or the terminal.
 
@@ -83,6 +85,7 @@ readme .\src\main.cpp
 | `Alt+Home` | Return to Home |
 | `Enter` / `Shift+Enter` | Next or previous match in the search field |
 | `Ctrl+G` | Go to a logical source line |
+| `Ctrl+Page Up` / `Ctrl+Page Down` | Previous or next page in a long Markdown preview |
 | `Ctrl+B` | Show or hide the sidebar |
 | `Ctrl+Shift+B` / `Ctrl+I` | Toggle bold or italic in the Markdown editor |
 | `Ctrl+U` | Toggle underline in the Markdown editor |
@@ -165,10 +168,10 @@ The source editor supports undo, search, line wrapping, **Go to line**, and opti
 
 **Can I edit code files without running them?** Yes. Code, scripts, HTML, and configuration open as plain source text. Markdown formatting controls appear only for Markdown documents.
 
-**Which Windows versions does it support?** Windows 11 x64 and Arm64 are the primary targets. Setup permits Windows 10 22H2 x64 (build 19045) with the matching .NET Desktop Runtime.
+**Which Windows versions does it support?** The final alpha Store bundle supports Windows 11 22H2 or later on x64 and Arm64. The x64 setup EXE also supports Windows 10 22H2.
 
 ## Open source
 
-The Readme uses C#, WPF, .NET 10, and Markdig. See [Contributing](CONTRIBUTING.md) for build and test commands, and [Changelog](CHANGELOG.md) for release history.
+The Readme uses C#, WPF, the Windows-provided .NET Framework, and Markdig. See [Contributing](CONTRIBUTING.md) for build and test commands, and [Changelog](CHANGELOG.md) for release history.
 
 [Apache License 2.0](LICENSE) · [Security](SECURITY.md) · [Privacy](PRIVACY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Artwork](docs/ARTWORK.md)

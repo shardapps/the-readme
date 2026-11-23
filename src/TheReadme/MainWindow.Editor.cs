@@ -63,6 +63,7 @@ public partial class MainWindow
         {
             Source.IsUndoEnabled = false;
             Source.Text = loadNow ? text : "";
+            Source.UndoLimit = UndoLimitFor(Source.Text.Length);
             Source.Select(0, 0);
             Source.ScrollToHome();
             Source.IsUndoEnabled = true;
@@ -76,12 +77,17 @@ public partial class MainWindow
         if (settingSource || currentFile is not { } file) return;
         CancelLoad();
         CancelPreview();
-        dirty = !string.Equals(Source.Text, savedText, StringComparison.Ordinal);
+        string text = Source.Text;
+        int limit = UndoLimitFor(text.Length);
+        if (Source.UndoLimit != limit) Source.UndoLimit = limit;
+        dirty = !string.Equals(text, savedText, StringComparison.Ordinal);
         RefreshDocumentLabel();
         Status.Text = dirty ? file.Format.Label + " · Unsaved changes" : FileStatus(file);
         if (mode == ViewMode.Split) previewDelay.Start();
         if (FindBar.IsVisible) SearchChanged(sender, e);
     }
+
+    private static int UndoLimitFor(int characters) => Math.Max(1, Math.Min(75, 1_500_000 / Math.Max(1, characters)));
 
     private async void NewDocument(object sender, RoutedEventArgs e)
     {
@@ -125,6 +131,7 @@ public partial class MainWindow
         ViewModes.Visibility = markdown ? Visibility.Visible : Visibility.Collapsed;
         ReadButton.IsEnabled = SourceButton.IsEnabled = SplitButton.IsEnabled = markdown;
         Preview.Visibility = markdown && mode != ViewMode.Edit ? Visibility.Visible : Visibility.Collapsed;
+        UpdatePageButtons();
         if (mode == ViewMode.Read) ReplaceRow.Visibility = Visibility.Collapsed;
         Source.Visibility = currentFile is not null && mode != ViewMode.Read ? Visibility.Visible : Visibility.Collapsed;
         EditorTools.Visibility = Source.Visibility;
@@ -185,6 +192,7 @@ public partial class MainWindow
             if (previewWork != work || !ReferenceEquals(file, currentFile)) return;
             currentMarkdown = result.markdown;
             currentImages = result.images;
+            previewPages = null;
             renderedText = draft;
             double offset = FindScrollViewer(Preview)?.VerticalOffset ?? 0;
             RenderPreview();
@@ -395,12 +403,12 @@ public partial class MainWindow
         int start = Source.SelectionStart;
         string text = Source.Text;
         var beforeCaret = text.AsSpan(0, start);
-        var line = beforeCaret[(beforeCaret.LastIndexOfAny('\r', '\n') + 1)..];
+        var line = beforeCaret.Slice(beforeCaret.LastIndexOfAny('\r', '\n') + 1);
         int length = 0;
         while (length < line.Length && line[length] is ' ' or '\t') length++;
         if (length == 0) return false;
 
-        string insertion = Environment.NewLine + line[..length].ToString();
+        string insertion = Environment.NewLine + line.Slice(0, length).ToString();
         ApplyEdit(new(start, Source.SelectionLength, insertion, start + insertion.Length, 0));
         return true;
     }

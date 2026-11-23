@@ -4,11 +4,11 @@
 
 **Short description**
 
-Open a README and fix a line without breaking your flow. Read, edit, and preview Markdown on Windows, or work directly in HDL, Python, JSON, and plain text.
+Open a README, fix a line, and get back to work. A lightweight Windows Markdown editor with live preview, Find and Replace, and source editing for HDL, Python, JSON, and more.
 
 **Description**
 
-Open a README, fix a line, and get back to work. The Readme is a free, open-source Markdown editor for Windows with live preview, Find and Replace, and plain-source editing. It gives developers, students, and documentation writers one workspace for project notes and the files they describe.
+Open a README, fix a line, and get back to work. The Readme is a free, lightweight Markdown editor for Windows with live preview, Find and Replace, and source editing. The app files take up under 2 MB per architecture and use the desktop framework already built into Windows.
 
 Read a formatted document and click the text you want to change. Start typing and the editor opens at that spot. Use Read for a clear page, Edit for the Markdown source, or Split to see both side by side. Choose an opening view in Settings and show the heading outline when a long document needs it.
 
@@ -20,7 +20,7 @@ Pick from seven themes or follow Windows. Resize the window or zoom from 60% to 
 
 **What’s new**
 
-Turn a README into an editable draft by clicking a line and typing. Choose Read, Edit, Split, or Last used for new Markdown files. Use Ctrl+H for Find and Replace, edit HDL and other source files directly, and keep your place with a sidebar that remembers your choice. The update also brings refreshed themes, smoother transitions, and a save prompt that matches the app.
+This final alpha makes the download smaller and uses less memory while you read and edit. Long Markdown previews load one page at a time. Find, the outline, and document links still jump across pages. The app adjusts image rendering and transitions for lower-spec PCs and high-resolution displays.
 
 **Product features**
 
@@ -30,10 +30,11 @@ Turn a README into an editable draft by clicking a line and typing. Choose Read,
 4. Replace one match or all matches with Ctrl+H and optional case matching.
 5. Start in your preferred view, with a sidebar that remembers your choice.
 6. Work offline with seven themes, adjustable zoom, and built-in samples.
+7. Install a small Windows app and browse long Markdown files with a full-document outline and search.
 
 **Search terms**
 
-markdown editor, readme viewer, markdown preview, plain text editor, hdl editor, find and replace, code editor
+markdown editor, readme viewer, lightweight text editor, markdown preview, hdl editor, find and replace, code editor
 
 **Listing details**
 
@@ -58,8 +59,6 @@ markdown editor, readme viewer, markdown preview, plain text editor, hdl editor,
 
 ## Certification notes
 
-Requires no sign-in or external service. Open the Markdown sample from Home, click a word and start typing to enter Edit, then try Ctrl+3 for Split and Ctrl+H for Find and Replace. Settings controls the default Markdown view and type-to-edit. Open the HDL sample from Home to try source editing and save a .hdl copy. The package contains the .NET runtime.
+Requires Windows 11 22H2 or later, with its built-in .NET Framework. Open the Markdown sample from Home, click a word and start typing to enter Edit, then try Ctrl+3 for Split and Ctrl+H for Find and Replace. Settings controls the default Markdown view and type-to-edit. Open the HDL sample from Home to try source editing and save a .hdl copy. No sign-in or external service is required.
 
-The `runFullTrust` capability launches the packaged native WPF desktop process under the current user. It needs access to user-selected local documents through the file picker, drag and drop, file associations, and its optional Windows execution alias. It uses no admin service or elevation.
-
-The Store download bundles the runtime. The approximately 2.6 MB size refers to the separate framework-dependent GitHub installer.
+The `runFullTrust` capability launches the packaged WPF desktop process under the current user. It needs access to user-selected local documents through the file picker, drag and drop, file associations, and its optional Windows execution alias. It uses no admin service or elevation.

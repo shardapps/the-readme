@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Markdig.Syntax;
 using Microsoft.Win32;
@@ -76,17 +77,19 @@ public partial class MainWindow : Window
     private readonly ReaderPreferences preferences;
     private readonly SemaphoreSlim readerGate = new(1);
     private readonly DispatcherTimer searchDelay = new() { Interval = TimeSpan.FromMilliseconds(130) };
-    private readonly List<int> matches = [];
+    private readonly List<(int Page, int Offset, int Occurrence)> matches = [];
     private ReaderFile? currentFile;
     private MarkdownDocument? currentMarkdown;
     private IReadOnlyDictionary<string, ImageSource> currentImages = new Dictionary<string, ImageSource>();
-    private IReadOnlyList<OutlineItem> outline = [];
+    private IReadOnlyList<OutlineItem> visibleOutline = [];
+    private MarkdownPages? previewPages;
+    private int previewPage;
     private DocumentSearch? searchIndex;
     private CancellationTokenSource? loading;
     private string? pendingAnchor;
     private int matchIndex;
 
-    private sealed record RailEntry(string Label, string Hint, Thickness Indent, OutlineItem? Heading = null, string? File = null);
+    private sealed record RailEntry(string Label, string Hint, Thickness Indent, MarkdownPages.Heading? Heading = null, string? File = null);
 
     public MainWindow(string? initialPath) : this(initialPath, ReaderPreferences.Load()) { }
 
@@ -119,7 +122,13 @@ public partial class MainWindow : Window
         SetZoom(preferences.Zoom, save: false);
         ShowRail();
         RefreshRail();
-        if (initialPath is not null) Loaded += async (_, _) => await OpenFile(initialPath);
+        if (initialPath is null) LoadWelcomeArt();
+        if (initialPath is not null)
+            Loaded += async (_, _) =>
+            {
+                await OpenFile(initialPath);
+                if (currentFile is null && WelcomeArt.Background is null) LoadWelcomeArt();
+            };
         StateChanged += (_, _) => { Frame.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0); MaximizeButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922"; };
     }
 
@@ -166,7 +175,7 @@ public partial class MainWindow : Window
             using var personalize = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
             selected = personalize?.GetValue("AppsUseLightTheme") is 0 ? "Midnight" : "Lilac";
         }
-        string[] palette = Themes.GetValueOrDefault(selected, Themes["Lilac"]);
+        string[] palette = Themes.TryGetValue(selected, out var matching) ? matching : Themes["Lilac"];
         Brush[] highContrast = [SystemColors.WindowBrush, SystemColors.WindowBrush, SystemColors.ControlBrush,
             SystemColors.WindowTextBrush, SystemColors.WindowTextBrush, SystemColors.WindowTextBrush,
             SystemColors.HighlightBrush, SystemColors.HighlightTextBrush, SystemColors.ControlBrush];
@@ -249,6 +258,8 @@ public partial class MainWindow : Window
         CancelPreview();
         currentFile = file;
         currentMarkdown = markdown;
+        previewPages = null;
+        previewPage = 0;
         currentImages = images ?? new Dictionary<string, ImageSource>();
         mode = file.Format.Kind == FileKind.Markdown ? view ?? (sample ? ViewMode.Read : PreferredView) : ViewMode.Edit;
         LoadEditor(file.Text, loadNow: mode != ViewMode.Read);
@@ -265,6 +276,7 @@ public partial class MainWindow : Window
         FileLocation.Text = file.IsOnDisk ? file.Path : sample ? "The Readme · sample" : "New document";
         FileLocation.ToolTip = file.IsOnDisk ? file.Path : null;
         Welcome.Visibility = Visibility.Collapsed;
+        WelcomeArt.Background = null;
         DocumentArea.Visibility = Visibility.Visible;
         ReloadButton.IsEnabled = RevealButton.IsEnabled = file.IsOnDisk;
         FindButton.IsEnabled = true;
@@ -281,21 +293,57 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RenderPreview()
+    private void RenderPreview(bool updateOutline = true)
     {
         if (currentFile?.Format.Kind != FileKind.Markdown)
         {
             Preview.Document = null;
-            outline = [];
+            visibleOutline = [];
+            previewPages = null;
             searchIndex = null;
+            UpdatePageButtons();
             RefreshRail();
             return;
         }
+        if (previewPages is null && currentMarkdown is not null)
+            previewPages = new MarkdownPages(currentMarkdown, currentImages);
+        previewPage = Math.Min(previewPage, (previewPages?.Count ?? 1) - 1);
         var view = new MarkdownView(this, currentFile!, currentImages, OpenLink);
-        Preview.Document = view.Render(currentMarkdown);
-        outline = view.Outline;
+        Preview.Document = view.Render(previewPages?.Blocks(previewPage));
+        visibleOutline = view.Outline;
         searchIndex = null;
-        RefreshRail();
+        UpdatePageButtons();
+        if (updateOutline) RefreshRail();
+    }
+
+    private void UpdatePageButtons()
+    {
+        int count = previewPages?.Count ?? 1;
+        PageControls.Visibility = mode != ViewMode.Edit && count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        PreviousPageButton.IsEnabled = previewPage > 0;
+        NextPageButton.IsEnabled = previewPage + 1 < count;
+        PreviewPageLabel.Text = $"{previewPage + 1} / {count}";
+    }
+
+    private void PageBack(object sender, RoutedEventArgs e) => MovePage(-1);
+    private void PageNext(object sender, RoutedEventArgs e) => MovePage(1);
+
+    private void MovePage(int direction)
+    {
+        int next = previewPage + direction;
+        if (mode != ViewMode.Edit && previewPages is { } pages && next >= 0 && next < pages.Count)
+        {
+            ShowPage(next);
+            FadeIn(Preview, travel: 3);
+        }
+    }
+
+    private void ShowPage(int page)
+    {
+        if (page == previewPage) return;
+        previewPage = page;
+        RenderPreview(updateOutline: false);
+        FindScrollViewer(Preview)?.ScrollToTop();
     }
 
     private void RefreshRail()
@@ -303,10 +351,11 @@ public partial class MainWindow : Window
         ToolbarHomeButton.Visibility = HomeButton.Visibility = HomeDivider.Visibility =
             currentFile is null ? Visibility.Collapsed : Visibility.Visible;
         bool showOutline = currentFile?.Format.Kind == FileKind.Markdown;
-        RailHeading.Text = showOutline ? "On this page" : "Recent files";
+        RailHeading.Text = showOutline ? previewPages?.Count > 1 ? "Headings" : "On this page" : "Recent files";
         RailEntry[] entries = !showOutline
             ? preferences.Recent.Select(path => new RailEntry(Path.GetFileName(path), path, new Thickness(), File: path)).ToArray()
-            : outline.Select(heading => new RailEntry(heading.Label, heading.Label, new Thickness(Math.Min(heading.Level - 1, 4) * 9, 0, 0, 0), heading)).ToArray();
+            : (previewPages?.Headings ?? []).Select(heading => new RailEntry(heading.Label, heading.Label,
+                new Thickness(Math.Min(heading.Level - 1, 4) * 9, 0, 0, 0), heading)).ToArray();
         RailList.ItemsSource = entries;
         RailList.Visibility = entries.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         RailEmpty.Visibility = entries.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -384,9 +433,11 @@ public partial class MainWindow : Window
         currentFile = null;
         dirty = false;
         currentMarkdown = null;
+        previewPages = null;
+        previewPage = 0;
         currentImages = new Dictionary<string, ImageSource>();
         searchIndex = null;
-        outline = [];
+        visibleOutline = [];
         Preview.Document = null;
         LoadEditor("", loadNow: false);
         FindBox.Clear();
@@ -394,6 +445,7 @@ public partial class MainWindow : Window
         matches.Clear();
         FindBar.Visibility = DocumentArea.Visibility = Visibility.Collapsed;
         Welcome.Visibility = Visibility.Visible;
+        LoadWelcomeArt();
         ReloadButton.IsEnabled = FindButton.IsEnabled = false;
         RefreshMode();
         Caption.Text = "Home";
@@ -401,6 +453,19 @@ public partial class MainWindow : Window
         Status.Text = "Ready to read";
         RefreshRail();
         FadeIn(Welcome, travel: 5);
+    }
+
+    private void LoadWelcomeArt()
+    {
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.UriSource = new Uri("pack://application:,,,/Readme;component/Assets/cover.jpg");
+        image.DecodePixelWidth = 600;
+        image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+        image.EndInit();
+        var brush = new ImageBrush(image) { Stretch = Stretch.UniformToFill };
+        brush.Freeze();
+        WelcomeArt.Background = brush;
     }
 
     private void ToggleRail(object sender, RoutedEventArgs e)
@@ -550,17 +615,30 @@ public partial class MainWindow : Window
             Source.Select(Source.SelectionStart, 0);
             return;
         }
-        string text = mode != ViewMode.Read ? Source.Text : (searchIndex ??= new DocumentSearch(Preview.Document)).Text;
-        int position = 0;
         var comparison = SearchComparison;
-        while (matches.Count < 1000 && (position = text.IndexOf(query, position, comparison)) >= 0)
+        if (mode != ViewMode.Read) AddMatches(Source.Text, 0);
+        else
         {
-            matches.Add(position);
-            position += query.Length;
+            int pageCount = previewPages?.Count ?? 1;
+            for (int page = 0; page < pageCount && matches.Count < 1000; page++)
+                AddMatches(page == previewPage ? RenderedSearch().Text : previewPages!.SearchText(page), page);
         }
-        if (from > 0) matchIndex = Math.Max(0, matches.FindIndex(offset => offset >= from));
+        if (from > 0) matchIndex = Math.Max(0, matches.FindIndex(match => match.Offset >= from));
         SelectMatch();
+
+        void AddMatches(string text, int page)
+        {
+            int position = 0;
+            int occurrence = 0;
+            while (matches.Count < 1000 && (position = text.IndexOf(query, position, comparison)) >= 0)
+            {
+                matches.Add((page, position, occurrence++));
+                position += query.Length;
+            }
+        }
     }
+
+    private DocumentSearch RenderedSearch() => searchIndex ??= new DocumentSearch(Preview.Document);
 
     private void FindPrevious(object sender, RoutedEventArgs e) => MoveMatch(-1);
     private void FindNext(object sender, RoutedEventArgs e) => MoveMatch(1);
@@ -581,7 +659,8 @@ public partial class MainWindow : Window
             Source.Select(Source.SelectionStart, 0);
             return;
         }
-        int start = matches[matchIndex];
+        var match = matches[matchIndex];
+        int start = match.Offset;
         int length = FindBox.Text.Length;
         FindCount.Text = $"{matchIndex + 1} of {matches.Count}{(matches.Count == 1000 ? "+" : "")}";
         if (mode != ViewMode.Read)
@@ -590,23 +669,42 @@ public partial class MainWindow : Window
             int line = Source.GetLineIndexFromCharacterIndex(start);
             if (line >= 0) Source.ScrollToLine(line);
         }
-        else if (searchIndex?.PointerAt(start, end: false) is { } first && searchIndex.PointerAt(start + length, end: true) is { } last)
+        else
         {
-            Preview.Selection?.Select(first, last);
-            first.Paragraph?.BringIntoView();
+            ShowPage(match.Page);
+            var index = RenderedSearch();
+            string query = FindBox.Text;
+            if (start + length > index.Text.Length ||
+                string.Compare(index.Text, start, query, 0, length, SearchComparison) != 0)
+            {
+                start = index.Text.IndexOf(query, SearchComparison);
+                for (int occurrence = 0; start >= 0 && occurrence < match.Occurrence; occurrence++)
+                    start = index.Text.IndexOf(query, start + length, SearchComparison);
+                if (start < 0) return;
+            }
+            if (index.PointerAt(start, end: false) is { } first && index.PointerAt(start + length, end: true) is { } last)
+            {
+                Preview.Selection?.Select(first, last);
+                first.Paragraph?.BringIntoView();
+            }
         }
     }
 
     private void JumpTo(string fragment)
     {
-        if (outline.FirstOrDefault(item => item.Anchor.Equals(fragment, StringComparison.OrdinalIgnoreCase)) is { } heading)
-            Dispatcher.InvokeAsync(() => heading.Target.BringIntoView(), DispatcherPriority.Loaded);
-        else Status.Text = "Heading not found: " + fragment;
+        if (previewPages?.Headings.FirstOrDefault(item => item.Anchor.Equals(fragment, StringComparison.OrdinalIgnoreCase)) is { } heading)
+        {
+            ShowPage(heading.Page);
+            if (visibleOutline.FirstOrDefault(item => item.Anchor.Equals(fragment, StringComparison.OrdinalIgnoreCase)) is { } target)
+                Dispatcher.InvokeAsync(() => target.Target.BringIntoView(), DispatcherPriority.Loaded);
+            return;
+        }
+        Status.Text = "Heading not found: " + fragment;
     }
 
     private async void OpenLink(string destination)
     {
-        if (destination.StartsWith('#')) { JumpTo(Uri.UnescapeDataString(destination[1..])); return; }
+        if (destination.Length > 0 && destination[0] == '#') { JumpTo(Uri.UnescapeDataString(destination.Substring(1))); return; }
         if (DocumentLinks.TryExternal(destination, out Uri? uri))
         {
             try { WindowsIntegration.Open(uri!.AbsoluteUri); }
@@ -616,14 +714,14 @@ public partial class MainWindow : Window
         if (currentFile is { IsOnDisk: true } file && DocumentLinks.LocalPath(file.Path, destination) is { } path && FileFormats.CanRead(path))
         {
             int hash = destination.IndexOf('#');
-            await OpenFile(path, hash < 0 ? null : Uri.UnescapeDataString(destination[(hash + 1)..]));
+            await OpenFile(path, hash < 0 ? null : Uri.UnescapeDataString(destination.Substring(hash + 1)));
         }
         else Status.Text = "This link points outside the supported document folder or uses an unsupported format.";
     }
 
     private void SetZoom(int value, bool save = true)
     {
-        preferences.Zoom = Math.Clamp(value, 60, 220);
+        preferences.Zoom = Math.Max(60, Math.Min(value, 220));
         Preview.Zoom = preferences.Zoom;
         Source.FontSize = 15.0 * preferences.Zoom / 100;
         ZoomLabel.Content = preferences.Zoom + "%";
@@ -680,6 +778,8 @@ public partial class MainWindow : Window
                 case Key.D1 or Key.NumPad1: e.Handled = true; await ChooseView(ViewMode.Read); return;
                 case Key.D2 or Key.NumPad2: e.Handled = true; await ChooseView(ViewMode.Edit); return;
                 case Key.D3 or Key.NumPad3: e.Handled = true; await ChooseView(ViewMode.Split); return;
+                case Key.PageUp: MovePage(-1); break;
+                case Key.PageDown: MovePage(1); break;
                 case Key.G: OpenGoTo(sender, e); break;
                 case Key.S when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): SaveAsClicked(sender, e); break;
                 case Key.S: SaveClicked(sender, e); break;
@@ -712,17 +812,25 @@ public partial class MainWindow : Window
     private void FadeIn(UIElement element, double travel = 0)
     {
         if (!preferences.AnimateTransitions || !SystemParameters.ClientAreaAnimation || SystemParameters.HighContrast) return;
-        var duration = TimeSpan.FromMilliseconds(travel == 0 ? 145 : 190);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        bool reduced = RenderPolicy.LimitMotion((int)(ActualWidth * dpi.DpiScaleX), (int)(ActualHeight * dpi.DpiScaleY));
+        var duration = TimeSpan.FromMilliseconds(reduced ? 120 : travel == 0 ? 145 : 190);
         var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
-        element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.87, 1, duration)
+        // Opacity on a full reading surface allocates a second window-sized render target.
+        bool isDocumentSurface = element == DocumentArea || element == Welcome || element == Preview || element == Source;
+        if (!isDocumentSurface)
         {
-            EasingFunction = easing,
-            FillBehavior = FillBehavior.Stop
-        });
+            element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.87, 1, duration)
+            {
+                EasingFunction = easing,
+                FillBehavior = FillBehavior.Stop
+            });
+        }
+        else if (travel == 0) travel = 2;
         if (travel == 0) return;
         var offset = new TranslateTransform();
         element.RenderTransform = offset;
-        offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(travel, 0, duration)
+        offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(reduced ? Math.Min(2, travel) : travel, 0, duration)
         {
             EasingFunction = easing,
             FillBehavior = FillBehavior.Stop

@@ -14,6 +14,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        bool footprint = args.Length > 0 && args[0] == "--footprint";
         string temporary = Path.Combine(Path.GetTempPath(), "the-readme-smoke-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temporary);
         try
@@ -22,15 +23,18 @@ internal static class Program
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             var dispatcher = Dispatcher.CurrentDispatcher;
             using var watchdog = timeout.Token.Register(() => dispatcher.BeginInvokeShutdown(DispatcherPriority.Send));
-            string? screenshots = args is [var directory] ? Path.GetFullPath(directory) : null;
+            RenderPolicy.Initialize();
+            string? screenshots = !footprint && args.Length == 1 ? Path.GetFullPath(args[0]) : null;
             int exit = 1;
             dispatcher.InvokeAsync(async () =>
             {
                 try
                 {
-                    await Run(temporary, screenshots, timeout.Token);
+                    if (footprint) await FootprintCheck.Run(temporary, args.Skip(1).FirstOrDefault(), timeout.Token);
+                    else await Run(temporary, screenshots, timeout.Token);
                     exit = 0;
-                    Console.WriteLine("Format, rendering, editing, saving, responsive layout, settings and cancellation checks passed.");
+                    if (!footprint)
+                        Console.WriteLine("Format, rendering, editing, saving, responsive layout, settings and cancellation checks passed.");
                 }
                 catch (Exception exception) { Console.Error.WriteLine(exception); }
                 finally { app.Shutdown(exit); }
@@ -163,6 +167,7 @@ internal static class Program
 
         await CheckWorkspace(window, prefs, path, fixture, pythonPath, screenshots, token);
         await CheckOpeningAndReplace(window, prefs, temporary, screenshots, token);
+        await CheckLongPreview(window, temporary, token);
 
         if (screenshots is not null)
         {
@@ -210,12 +215,12 @@ internal static class Program
         }
 
         string unknownBinary = Path.Combine(temporary, "hidden.unknown");
-        await File.WriteAllBytesAsync(unknownBinary, [70, 0, 50, 25, 50], token);
+        File.WriteAllBytes(unknownBinary, [70, 0, 50, 25, 50]);
         await MustReject(unknownBinary, token);
         string utf16 = Path.Combine(temporary, "UTF16.txt");
         ReaderFile original = await ReaderFile.OpenAsync(utf16, token);
         var saved = await original.SaveAsync(utf16, "A line of Unicode ☼\r\nMore text", overwrite: false);
-        Require(File.ReadAllBytes(utf16).AsSpan().StartsWith(Encoding.Unicode.Preamble) && saved.Text.Contains('\u263c'), "Save preserves Unicode encoding and BOM");
+        Require(File.ReadAllBytes(utf16).AsSpan().StartsWith(Encoding.Unicode.GetPreamble()) && saved.Text.Contains('\u263c'), "Save preserves Unicode encoding and BOM");
         File.WriteAllText(utf16, "External change");
         try
         {
@@ -233,7 +238,7 @@ internal static class Program
         Require((await logic.SaveAsync(hdl, chip, overwrite: false)).Format.Label == "HDL" && File.ReadAllText(hdl) == chip, "Save As keeps HDL");
         string protectedBinary = Path.Combine(temporary, "protected.exe");
         byte[] binary = [77, 90, 0];
-        await File.WriteAllBytesAsync(protectedBinary, binary, token);
+        File.WriteAllBytes(protectedBinary, binary);
         try
         {
             await logic.SaveAsync(protectedBinary, chip, overwrite: true);
@@ -426,6 +431,38 @@ internal static class Program
         }
     }
 
+    private static async Task CheckLongPreview(MainWindow window, string folder, CancellationToken token)
+    {
+        T Element<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
+        void Click(string name) => Element<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        string path = Path.Combine(folder, "Paged.md");
+        string text = "# First page\n\nA **shared phrase** here.\n\n[Jump](#final-section)\n\n" +
+            string.Concat(Enumerable.Repeat("| Key | Action |\n| --- | --- |\n| Ctrl+O | Open |\n\n" +
+                "> A quoted line with an **emphasis** and a hard break.  \n> Second line.\n\n", 30)) +
+            "## Final section\n\nA _shared phrase_ here too.\n";
+        File.WriteAllText(path, text);
+        Element<ComboBox>("OpeningViewBox").SelectedIndex = 0;
+        await window.OpenFile(path);
+        var preview = Element<FlowDocumentScrollViewer>("Preview");
+        Require(Element<StackPanel>("PageControls").IsVisible, "Long Markdown shows page navigation");
+        var jump = preview.Document.Blocks.OfType<Paragraph>().SelectMany(block => block.Inlines).OfType<Hyperlink>().Single();
+        jump.RaiseEvent(new RoutedEventArgs(Hyperlink.ClickEvent));
+        Require(new DocumentSearch(preview.Document).Text.Contains("Final section"), "A link moves to another preview page");
+        Click("FindButton");
+        Element<TextBox>("FindBox").Text = "shared phrase";
+        await WaitUntil(() => Element<TextBlock>("FindCount").Text == "1 of 2", token);
+        Require(preview.Selection?.Text == "shared phrase", "Search finds the first formatted match");
+        Click("FindNextButton");
+        Require(preview.Selection?.Text == "shared phrase" &&
+            new DocumentSearch(preview.Document).Text.Contains("Final section"), "Search moves across preview pages");
+        Click("PreviousPageButton");
+        Require(!new DocumentSearch(preview.Document).Text.Contains("Final section"), "Previous returns to the prior page");
+        await window.OpenFile(path, anchor: "final-section");
+        Require(new DocumentSearch(preview.Document).Text.Contains("Final section"), "Document anchors can open a later page");
+        Click("SourceButton");
+        Require(Element<TextBox>("Source").Text == text, "Editing a paged Markdown file loads the entire source");
+    }
+
     private static async Task CheckOpeningAndReplace(MainWindow window, ReaderPreferences prefs, string folder,
         string? screenshots, CancellationToken token)
     {
@@ -437,7 +474,9 @@ internal static class Program
         string prefsPath = Path.Combine(folder, "prefs.json");
         string legacyPath = Path.Combine(folder, "legacy.json");
         File.WriteAllText(legacyPath, """{"Theme":"Moss"}""");
-        Require(!ReaderPreferences.Load(legacyPath).ShowSidebar && new ReaderPreferences().OpeningView == MarkdownOpeningView.Read,
+        var legacy = ReaderPreferences.Load(legacyPath);
+        Require(legacy.Theme == "Moss" && legacy.AnimateTransitions && legacy.WrapText && legacy.TypeToEdit &&
+            !legacy.ShowSidebar && new ReaderPreferences().OpeningView == MarkdownOpeningView.Read,
             "New and older settings without a sidebar choice default to a closed sidebar and Read view");
 
         var rail = Control<Border>("Rail");
@@ -479,7 +518,7 @@ internal static class Program
         Require(preview.IsVisible && !editor.IsVisible, "Type-to-edit can be disabled");
         prefs.TypeToEdit = true;
         Type("é");
-        Require(editor.IsVisible && editor.Text == original.Replace("**needle**", "**needéle**", StringComparison.Ordinal),
+        Require(editor.IsVisible && editor.Text == original.Replace("**needle**", "**needéle**"),
             "The first composed character edits the actual Markdown inside emphasis");
         editor.Undo();
         Require(editor.Text == original, "Type-to-edit inserts one undoable change");

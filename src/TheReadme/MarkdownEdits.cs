@@ -19,12 +19,12 @@ internal static class MarkdownEdits
         while (trailing < trimmed.Length - leading && trimmed[trimmed.Length - trailing - 1] == marker[0]) trailing++;
         if (CanToggle(marker, leading, trailing))
         {
-            string inner = trimmed[marker.Length..^marker.Length];
-            string replacement = selected[..prefix] + inner + selected[(prefix + trimmed.Length)..];
+            string inner = trimmed.Substring(marker.Length, trimmed.Length - 2 * marker.Length);
+            string replacement = selected.Substring(0, prefix) + inner + selected.Substring(prefix + trimmed.Length);
             return new(start, length, replacement, start + prefix, inner.Length);
         }
 
-        string result = selected[..prefix] + marker + trimmed + marker + selected[(prefix + trimmed.Length)..];
+        string result = selected.Substring(0, prefix) + marker + trimmed + marker + selected.Substring(prefix + trimmed.Length);
         return new(start, length, result, start + prefix + marker.Length, trimmed.Length);
     }
 
@@ -46,15 +46,15 @@ internal static class MarkdownEdits
         while (begin > 0 && document[begin - 1] is not ('\r' or '\n')) begin--;
         int end = start + length;
         while (end < document.Length && document[end] is not ('\r' or '\n')) end++;
-        string line = document[begin..end];
+        string line = document.Substring(begin, end - begin);
         int marker = 0;
         while (marker < line.Length && marker < 6 && line[marker] == '#') marker++;
         if (marker == 0 || (marker < line.Length && line[marker] is not (' ' or '\t'))) marker = 0;
         int body = marker == 0 ? 0 : marker;
         while (marker > 0 && body < line.Length && line[body] is ' ' or '\t') body++;
         string prefix = level == 0 ? "" : new string('#', level) + " ";
-        string result = prefix + line[body..];
-        int selection = begin + Math.Clamp(start - begin - body, 0, line.Length - body) + prefix.Length;
+        string result = prefix + line.Substring(body);
+        int selection = begin + Math.Max(0, Math.Min(start - begin - body, line.Length - body)) + prefix.Length;
         return new(begin, end - begin, result, selection, Math.Min(length, begin + result.Length - selection));
     }
 

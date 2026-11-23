@@ -217,9 +217,7 @@
               <Border CornerRadius="17" ClipToBounds="True" SizeChanged="ClipHero" Background="#211638" MinHeight="306">
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                  <Border Grid.Column="1">
-                    <Border.Background><ImageBrush ImageSource="Assets/cover.jpg" Stretch="UniformToFill"/></Border.Background>
-                  </Border>
+                  <Border x:Name="WelcomeArt" Grid.Column="1"/>
                   <Border Grid.Column="1">
                     <Border.Background>
                       <LinearGradientBrush StartPoint="0,0" EndPoint="0.30,0"><GradientStop Color="#FF211638" Offset="0"/><GradientStop Color="#00211638" Offset="1"/></LinearGradientBrush>
@@ -277,6 +275,15 @@
                   <TextBlock x:Name="FileLocation" FontSize="12" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                  <StackPanel x:Name="PageControls" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,7,0"
+                              AutomationProperties.Name="Markdown preview pages">
+                    <Button x:Name="PreviousPageButton" Content="‹" Padding="8,4" Click="PageBack" ToolTip="Previous preview page (Ctrl+Page Up)"
+                            AutomationProperties.Name="Previous preview page"/>
+                    <TextBlock x:Name="PreviewPageLabel" MinWidth="42" TextAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
+                    <Button x:Name="NextPageButton" Content="›" Padding="8,4" Click="PageNext" ToolTip="Next preview page (Ctrl+Page Down)"
+                            AutomationProperties.Name="Next preview page"/>
+                  </StackPanel>
                   <Button x:Name="SaveButton" Content="Save" Click="SaveClicked" ToolTip="Save (Ctrl+S)"/>
                   <Button x:Name="SaveAsButton" Content="Save as…" Click="SaveAsClicked" ToolTip="Save as (Ctrl+Shift+S)"/>
                   <Button x:Name="RevealButton" Style="{StaticResource IconButton}" Content="&#xE838;" Click="RevealFile"
@@ -291,7 +298,7 @@
                   <TextBox x:Name="FindBox" Width="185" MaxLength="512" VerticalContentAlignment="Center" TextChanged="SearchChanged" AutomationProperties.Name="Find in document"/>
                   <TextBlock x:Name="FindCount" MinWidth="70" TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
                   <Button Content="↑" Click="FindPrevious" Padding="8,5" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous match"/>
-                  <Button Content="↓" Click="FindNext" Padding="8,5" ToolTip="Next match (Enter)" AutomationProperties.Name="Next match"/>
+                  <Button x:Name="FindNextButton" Content="↓" Click="FindNext" Padding="8,5" ToolTip="Next match (Enter)" AutomationProperties.Name="Next match"/>
                   <Button x:Name="ShowReplaceButton" Content="Replace…" Click="OpenReplace" Padding="8,5" ToolTip="Find and replace (Ctrl+H)"/>
                   <CheckBox x:Name="MatchCase" Content="Match case" Click="SearchCaseChanged" Foreground="{DynamicResource Ink}" Margin="8,0" VerticalAlignment="Center"/>
                   <Button x:Name="CloseFindButton" Content="×" Click="CloseFind" Padding="8,5" ToolTip="Close find (Esc)" AutomationProperties.Name="Close find"/>

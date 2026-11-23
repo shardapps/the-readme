@@ -9,11 +9,14 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
 {
     public const int MaxBytes = 2 * 1024 * 1024;
     private static readonly UTF8Encoding Utf8 = new(false, true);
-    private static readonly Encoding[] UnicodeEncodings =
+    private static readonly (Encoding Encoding, byte[] Preamble)[] UnicodeEncodings =
     [
-        new UTF32Encoding(false, true, true), new UTF32Encoding(true, true, true),
-        new UTF8Encoding(true, true), new UnicodeEncoding(false, true, true), new UnicodeEncoding(true, true, true)
+        WithPreamble(new UTF32Encoding(false, true, true)), WithPreamble(new UTF32Encoding(true, true, true)),
+        WithPreamble(new UTF8Encoding(true, true)), WithPreamble(new UnicodeEncoding(false, true, true)),
+        WithPreamble(new UnicodeEncoding(true, true, true))
     ];
+
+    private static (Encoding, byte[]) WithPreamble(Encoding encoding) => (encoding, encoding.GetPreamble());
 
     public string Name => System.IO.Path.GetFileName(Path);
     public bool IsPlainText => Format.Kind != FileKind.Markdown;
@@ -27,20 +30,32 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
         string fullPath = LocalPath(path);
         if (!FileFormats.CanRead(fullPath)) throw new IOException("Choose a text or source file.");
 
-        await using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete,
-            bufferSize: 16 * 1024, useAsync: true);
-        if (stream.Length > MaxBytes) throw new IOException("This file exceeds the 2 MB reading limit.");
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(MaxBytes + 1);
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 4096, useAsync: true);
+        long size = stream.Length;
+        if (size > MaxBytes) throw new IOException("This file exceeds the 2 MB reading limit.");
+        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)size + 1);
         try
         {
-            int count = await stream.ReadAtLeastAsync(buffer.AsMemory(0, MaxBytes + 1), MaxBytes + 1, throwOnEndOfStream: false, cancellationToken);
-            if (count > MaxBytes) throw new IOException("This file exceeds the 2 MB reading limit.");
-            Encoding encoding = UnicodeEncodings.FirstOrDefault(item => buffer.AsSpan(0, count).StartsWith(item.Preamble)) ?? Utf8;
-            int skip = encoding.Preamble.Length;
+            int count = 0;
+            while (true)
+            {
+                int read = await stream.ReadAsync(buffer, count, Math.Min(buffer.Length, MaxBytes + 1) - count, cancellationToken);
+                if (read == 0) break;
+                count += read;
+                if (count > MaxBytes) throw new IOException("This file exceeds the 2 MB reading limit.");
+                if (count != buffer.Length) continue;
+                byte[] larger = ArrayPool<byte>.Shared.Rent(Math.Min(buffer.Length * 2, MaxBytes + 1));
+                Buffer.BlockCopy(buffer, 0, larger, 0, count);
+                ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                buffer = larger;
+            }
+            var detected = UnicodeEncodings.FirstOrDefault(item => buffer.AsSpan(0, count).StartsWith(item.Preamble));
+            Encoding encoding = detected.Encoding ?? Utf8;
+            int skip = detected.Preamble?.Length ?? 0;
             string content = encoding.GetString(buffer, skip, count - skip);
             EnsureText(content);
-            return new ReaderFile(fullPath, content, FileFormats.ForPath(fullPath), count, encoding,
-                Convert.ToHexString(SHA256.HashData(buffer.AsSpan(0, count))));
+            return new ReaderFile(fullPath, content, FileFormats.ForPath(fullPath), count, encoding, FingerprintOf(buffer, count));
         }
         catch (DecoderFallbackException) { throw new IOException("This file needs UTF-8 or Unicode with a byte-order mark."); }
         finally { ArrayPool<byte>.Shared.Return(buffer, clearArray: true); }
@@ -54,19 +69,20 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
         bool sameFile = IsOnDisk && path.Equals(Path, StringComparison.OrdinalIgnoreCase);
         Encoding encoding = Encoding ?? Utf8;
         string content = PreserveLineEndings(Text, draft);
-        int size = checked(encoding.Preamble.Length + encoding.GetByteCount(content));
+        byte[] preamble = encoding.GetPreamble();
+        int size = checked(preamble.Length + encoding.GetByteCount(content));
         if (size > MaxBytes) throw new IOException("This document exceeds the 2 MB save limit.");
         EnsureText(content);
         byte[] bytes = new byte[size];
-        encoding.Preamble.CopyTo(bytes);
-        encoding.GetBytes(content.AsSpan(), bytes.AsSpan(encoding.Preamble.Length));
+        preamble.CopyTo(bytes, 0);
+        encoding.GetBytes(content, 0, content.Length, bytes, preamble.Length);
 
         string temporary = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, $".readme-{Guid.NewGuid():N}.tmp");
         try
         {
-            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 16 * 1024, useAsync: true))
+            using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 16 * 1024, useAsync: true))
             {
-                await output.WriteAsync(bytes);
+                await output.WriteAsync(bytes, 0, bytes.Length);
                 output.Flush(flushToDisk: true);
             }
             if (sameFile)
@@ -75,14 +91,21 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
                 if (current.Fingerprint != Fingerprint)
                     throw new IOException("The file changed on disk. Use Save As to preserve your edits in another file.");
             }
-            File.Move(temporary, path, overwrite: sameFile || overwrite);
+            if (sameFile || overwrite) LocalFiles.MoveReplacing(temporary, path);
+            else File.Move(temporary, path);
         }
         finally
         {
             try { File.Delete(temporary); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
-        return new ReaderFile(path, content, format, bytes.Length, encoding, Convert.ToHexString(SHA256.HashData(bytes)));
+        return new ReaderFile(path, content, format, bytes.Length, encoding, FingerprintOf(bytes, bytes.Length));
+    }
+
+    private static string FingerprintOf(byte[] bytes, int count)
+    {
+        using var sha = SHA256.Create();
+        return Convert.ToBase64String(sha.ComputeHash(bytes, 0, count));
     }
 
     private static void EnsureText(string content)
@@ -93,7 +116,7 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
 
     private static string PreserveLineEndings(string original, string draft)
     {
-        if (original.Length == 0) return draft.ReplaceLineEndings("\n");
+        if (original.Length == 0) return NormalizeLineEndings(draft);
         string? newline = null;
         for (int index = 0; index < original.Length; index++)
         {
@@ -109,10 +132,11 @@ public sealed record ReaderFile(string Path, string Text, FileFormat Format, lon
             newline = next;
             if (next.Length == 2) index++;
         }
-        if (newline is null) return draft.ReplaceLineEndings("\n");
-        return draft.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
-            .Replace("\n", newline, StringComparison.Ordinal);
+        string normalized = NormalizeLineEndings(draft);
+        return newline is null or "\n" ? normalized : normalized.Replace("\n", newline);
     }
+
+    private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n');
 
     private static string LocalPath(string path)
     {
