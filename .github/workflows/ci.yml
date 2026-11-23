@@ -30,11 +30,16 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - name: Restore and audit locked dependencies
-        run: dotnet restore --locked-mode -warnaserror
+        run: dotnet restore tests/TheReadme.Smoke --locked-mode -p:RuntimeIdentifier=win-x64 -warnaserror
       - name: Build
-        run: dotnet build --no-restore -c Release -warnaserror
+        run: dotnet build tests/TheReadme.Smoke --no-restore -c Release -p:RuntimeIdentifier=win-x64 -warnaserror
       - name: Test file handling, rendering, search, and cancellation
-        run: dotnet run --project tests/TheReadme.Smoke -c Release --no-build -- artifacts/screenshots
+        run: ./tests/TheReadme.Smoke/bin/Release/net48/win-x64/TheReadme.Smoke.exe artifacts/screenshots
+      - name: Check the 50 MB private working set budget on x64 Windows
+        run: |
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          ./tests/TheReadme.Smoke/bin/Release/net48/win-x64/TheReadme.Smoke.exe --footprint x86 | Tee-Object artifacts/footprint-x64.txt
+          exit $LASTEXITCODE
       - name: Build x64 and Arm64 installers
         run: ./scripts/Build-Installer.ps1
       - name: Test x64 installation, PATH, file registration, and uninstall
@@ -63,6 +68,7 @@ jobs:
           name: windows-diagnostics
           path: |
             artifacts/screenshots/*.png
+            artifacts/footprint-x64.txt
             ${{ runner.temp }}/setup.log
             ${{ runner.temp }}/uninstall.log
           if-no-files-found: ignore
@@ -81,11 +87,16 @@ jobs:
           global-json-file: global.json
       - name: Test document editing and source viewing on Arm64
         run: |
-          dotnet restore --locked-mode -warnaserror
+          dotnet restore tests/TheReadme.Smoke --locked-mode -p:RuntimeIdentifier=win-arm64 -warnaserror
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet build --no-restore -c Release -warnaserror
+          dotnet build tests/TheReadme.Smoke --no-restore -c Release -p:RuntimeIdentifier=win-arm64 -warnaserror
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet run --project tests/TheReadme.Smoke -c Release --no-build
+          ./tests/TheReadme.Smoke/bin/Release/net48/win-arm64/TheReadme.Smoke.exe
+      - name: Check the 50 MB private working set budget on native Arm64
+        run: |
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          ./tests/TheReadme.Smoke/bin/Release/net48/win-arm64/TheReadme.Smoke.exe --footprint arm64 | Tee-Object artifacts/footprint-arm64.txt
+          exit $LASTEXITCODE
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: windows-installers
@@ -101,4 +112,5 @@ jobs:
           path: |
             ${{ runner.temp }}/setup.log
             ${{ runner.temp }}/uninstall.log
+            artifacts/footprint-arm64.txt
           if-no-files-found: ignore

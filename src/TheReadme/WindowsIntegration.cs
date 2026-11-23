@@ -10,7 +10,7 @@ public static class WindowsIntegration
 {
     private const string IntegrationKey = @"Software\ShardApps\TheReadme";
     private const string OwnedPath = "OwnedPath";
-    private static string AppDirectory => Path.GetDirectoryName(Environment.ProcessPath)!;
+    private static string AppDirectory => AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
     private static readonly Lazy<string?> PackageApplicationId = new(ReadPackageApplicationId);
     public static bool IsPackaged => PackageApplicationId.Value is not null;
     public const string ExecutionAliasSettingsUri = "ms-settings:appsfeatures-appexecutionaliases";
@@ -66,7 +66,7 @@ public static class WindowsIntegration
                 if (addedEntry >= 0)
                 {
                     parts.RemoveAt(addedEntry);
-                    WritePath(environment, string.Join(';', parts));
+                    WritePath(environment, string.Join(";", parts));
                 }
                 state.DeleteValue(OwnedPath, throwOnMissingValue: false);
             }

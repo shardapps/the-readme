@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0-alpha.5
+
+- Use the Windows-provided desktop runtime. The unpacked Store payload is under 2 MB per architecture. The final alpha Store bundle requires Windows 11 22H2 or later. The x64 setup EXE also works on Windows 10 22H2.
+- Reduce working memory with software rendering, bounded image decoding, a smaller editor undo budget for large files, and lighter transitions on lower-spec PCs and large displays.
+- Load long Markdown previews one page at a time. Find, internal links, and the heading outline navigate across pages, and the full document stays available in Edit.
+- Measure private working set during normal and maximized editing on x64 and Arm64. Enforce a 50 MB budget for the tested workflow and for the app payload.
+
 ## 1.1.0-alpha.4
 
 - Use a themed in-app prompt for unsaved documents. Choose Save, Discard changes, or Keep editing when closing or switching files.

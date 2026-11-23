@@ -11,14 +11,15 @@ $root = Split-Path -Parent $PSScriptRoot
 $compiler = Join-Path $root '.tools/inno/ISCC.exe'
 if (!(Test-Path -LiteralPath $compiler)) { & "$PSScriptRoot/Install-Inno.ps1" }
 $project = Join-Path $root 'src/TheReadme/TheReadme.csproj'
-$version = ([xml](Get-Content -LiteralPath $project -Raw)).Project.PropertyGroup.Version
+$version = ([xml](Get-Content -LiteralPath $project -Raw)).SelectSingleNode('/Project/PropertyGroup/Version').InnerText
 $script = Join-Path $root 'installer/TheReadme.iss'
+if (!$BuildArtifactsPath) { $BuildArtifactsPath = Join-Path $root "artifacts/installer-build/$version" }
 
 foreach ($target in $Rid) {
-    $destination = Join-Path $root "artifacts/publish/$target"
-    $arguments = @('publish', $project, '-c', 'Release', '-r', $target, '--no-self-contained',
-        '-o', $destination, '-p:RestoreLockedMode=true', '-p:DebugType=None')
-    if ($BuildArtifactsPath) { $arguments += @('--artifacts-path', $BuildArtifactsPath) }
+    $destination = Join-Path $root "artifacts/publish/$version/$target"
+    $arguments = @('publish', $project, '-c', 'Release', '-r', $target, '-o', $destination,
+        '-p:RestoreLockedMode=true', '-p:DebugType=None',
+        '--artifacts-path', (Join-Path $BuildArtifactsPath $target))
     & $Dotnet @arguments
     if ($LASTEXITCODE -ne 0) { throw "Publish failed for $target." }
     & $compiler "/DRid=$target" "/DVersion=$version" $script
@@ -28,6 +29,7 @@ foreach ($target in $Rid) {
 $output = Join-Path $root 'artifacts/installers'
 $lines = foreach ($target in $Rid) {
     $file = Join-Path $output "The-Readme-$version-$target-setup.exe"
+    if ((Get-Item -LiteralPath $file).Length -ge 50000000) { throw "$target setup exceeded the 50 MB release budget." }
     $digest = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
     "$digest  $(Split-Path -Leaf $file)"
 }

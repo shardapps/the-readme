@@ -7,13 +7,13 @@
 #define Product "The Readme"
 #define ProgId "ShardApps.TheReadme.Document"
 #define StateKey "Software\ShardApps\TheReadme"
-#define SourcePath "..\artifacts\publish\" + Rid
+#define SourcePath "..\artifacts\publish\" + Version + "\" + Rid
 #if Rid == "win-arm64"
   #define Arch "arm64"
-  #define RuntimeArch "arm64"
+  #define MinWindows "10.0.22621"
 #else
   #define Arch "x64compatible"
-  #define RuntimeArch "x64"
+  #define MinWindows "10.0.19045"
 #endif
 
 [Setup]
@@ -40,7 +40,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 ChangesAssociations=yes
-MinVersion=10.0.19045
+MinVersion={#MinWindows}
 CloseApplications=yes
 
 [Tasks]
@@ -96,61 +96,6 @@ Filename: "{app}\Readme.exe"; Description: "Launch The Readme"; Flags: nowait po
 Filename: "{app}\Readme.exe"; Parameters: "--installer-remove-path"; Flags: runhidden; RunOnceId: "RemoveTheReadmePath"
 
 [Code]
-function RuntimeIn(const Root: String): Boolean;
-var
-  Framework: String;
-  RecordInfo: TFindRec;
-begin
-  Result := False;
-  Framework := AddBackslash(Root) + 'shared\Microsoft.WindowsDesktop.App\';
-  if FindFirst(Framework + '10.0.*', RecordInfo) then
-  begin
-    try
-      repeat
-        if (StrToIntDef(Copy(RecordInfo.Name, 6, 20), -1) >= 0) and
-           FileExists(Framework + RecordInfo.Name + '\PresentationFramework.dll') then
-        begin
-          Result := True;
-          Exit;
-        end;
-      until not FindNext(RecordInfo);
-    finally
-      FindClose(RecordInfo);
-    end;
-  end;
-end;
-
-function HasDesktopRuntime(): Boolean;
-var
-  Root: String;
-begin
-  if RegQueryStringValue(HKLM64, 'SOFTWARE\dotnet\Setup\InstalledVersions\{#RuntimeArch}', 'InstallLocation', Root) and RuntimeIn(Root) then
-  begin
-    Result := True;
-    Exit;
-  end;
-  Root := ExpandConstant('{commonpf64}\dotnet');
-#if RuntimeArch == "x64"
-  if IsArm64 then
-    Root := Root + '\x64';
-#endif
-  Result := RuntimeIn(Root);
-end;
-
-function InitializeSetup(): Boolean;
-var
-  Code: Integer;
-begin
-  Result := HasDesktopRuntime();
-  if not Result then
-  begin
-    Log('Microsoft .NET 10 Windows Desktop Runtime ({#RuntimeArch}) was not detected.');
-    if not WizardSilent then
-      if MsgBox('Install the Microsoft .NET 10 Windows Desktop Runtime ({#RuntimeArch}), then reopen this installer. Open the download page?', mbInformation, MB_YESNO) = IDYES then
-        ShellExec('open', 'https://dotnet.microsoft.com/download/dotnet/10.0', '', '', SW_SHOWNORMAL, ewNoWait, Code);
-  end;
-end;
-
 procedure CurStepChanged(Step: TSetupStep);
 var
   Code: Integer;

@@ -25,8 +25,8 @@ public static class FileFormats
     private static readonly Dictionary<string, FileFormat> SourceFormats = BuildSourceFormats();
 
     public static string OpenFilter { get; } = "All files (*.*)|*.*|Markdown and text|" +
-        string.Join(';', MarkdownExtensions.Select(extension => "*" + extension).Concat(["*.txt", "*.text", "README", "CHANGELOG", "LICENSE"])) +
-        "|Source, data and configuration|" + string.Join(';', SourceFormats.Keys.Select(name => name.StartsWith('.') ? "*" + name : name));
+        string.Join(";", MarkdownExtensions.Select(extension => "*" + extension).Concat(["*.txt", "*.text", "README", "CHANGELOG", "LICENSE"])) +
+        "|Source, data and configuration|" + string.Join(";", SourceFormats.Keys.Select(name => name[0] == '.' ? "*" + name : name));
 
     public static FileFormat ForPath(string path)
     {
@@ -36,7 +36,7 @@ public static class FileFormats
         if (SourceFormats.TryGetValue(name, out FileFormat? named)) return named;
         if (extension.Equals(".txt", StringComparison.OrdinalIgnoreCase) || extension.Equals(".text", StringComparison.OrdinalIgnoreCase))
             return PlainText;
-        return SourceFormats.GetValueOrDefault(extension) ?? Other;
+        return SourceFormats.TryGetValue(extension, out FileFormat? format) ? format : Other;
     }
 
     public static bool CanRead(string path) => !BinaryExtensions.Contains(Path.GetExtension(path));

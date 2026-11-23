@@ -8,7 +8,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        if (e.Args is ["--installer-add-path"] or ["--installer-remove-path"])
+        if (e.Args.Length == 1 && e.Args[0] is "--installer-add-path" or "--installer-remove-path")
         {
             try
             {
@@ -22,7 +22,8 @@ public partial class App : Application
             return;
         }
 
-        var window = new MainWindow(e.Args is ["--", var path] ? path : e.Args.FirstOrDefault());
+        RenderPolicy.Initialize();
+        var window = new MainWindow(e.Args.Length == 2 && e.Args[0] == "--" ? e.Args[1] : e.Args.FirstOrDefault());
         MainWindow = window;
         window.Show();
     }

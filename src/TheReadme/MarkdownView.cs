@@ -36,17 +36,20 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
     {
         var result = new Dictionary<string, ImageSource>(StringComparer.Ordinal);
         if (document is null) return result;
-        foreach (var image in document.Descendants<LinkInline>().Where(link => link.IsImage && link.Url is not null).Take(24))
+        var links = document.Descendants<LinkInline>().Where(link => link.IsImage && link.Url is not null)
+            .Take(24).Select(link => link.Url!).Distinct(StringComparer.Ordinal).ToArray();
+        if (links.Length == 0) return result;
+        int imagePixels = RenderPolicy.ImagePixels / Math.Min(12, links.Length);
+        foreach (string url in links)
         {
             token.ThrowIfCancellationRequested();
-            string url = image.Url!;
-            if (!result.ContainsKey(url) && LoadImage(file.Path, url) is { } bitmap) result.Add(url, bitmap);
+            if (LoadImage(file.Path, url, imagePixels) is { } bitmap) result.Add(url, bitmap);
             if (result.Count >= 12) break;
         }
         return result;
     }
 
-    public FlowDocument Render(MarkdownDocument? markdown)
+    public FlowDocument Render(IEnumerable<Markdig.Syntax.Block>? markdown)
     {
         var document = new FlowDocument
         {
@@ -70,7 +73,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
         return document;
     }
 
-    private void WriteBlocks(ContainerBlock source, BlockCollection destination, int depth)
+    private void WriteBlocks(IEnumerable<Markdig.Syntax.Block> source, BlockCollection destination, int depth)
     {
         if (depth > 32) return;
         foreach (var block in source)
@@ -238,7 +241,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
 
     private Hyperlink MakeLink(string url)
     {
-        var hyperlink = new Hyperlink { Foreground = Brush("Accent"), ToolTip = url.Length > 300 ? url[..300] + "…" : url };
+        var hyperlink = new Hyperlink { Foreground = Brush("Accent"), ToolTip = url.Length > 300 ? url.Substring(0, 300) + "…" : url };
         hyperlink.Click += (_, _) => openLink(url);
         return hyperlink;
     }
@@ -256,7 +259,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
         return new InlineUIContainer(control);
     }
 
-    private static BitmapImage? LoadImage(string documentPath, string url)
+    private static BitmapImage? LoadImage(string documentPath, string url, int imagePixels)
     {
         if (DocumentLinks.LocalPath(documentPath, url) is not { } path) return null;
         if (Path.GetExtension(path).ToLowerInvariant() is not (".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp")) return null;
@@ -268,8 +271,9 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
                 if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) return null;
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (stream.Length > 2 * 1024 * 1024) return null;
-            byte[] header = new byte[8];
-            if (stream.ReadAtLeast(header, header.Length, false) != header.Length || !IsSupportedBitmap(header)) return null;
+            using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+            byte[] header = reader.ReadBytes(8);
+            if (header.Length != 8 || !IsSupportedBitmap(header)) return null;
             stream.Position = 0;
             var meta = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
             if ((long)meta.PixelWidth * meta.PixelHeight > 12_000_000 || meta.PixelWidth > 8192 || meta.PixelHeight > 8192)
@@ -278,8 +282,10 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.StreamSource = stream;
-            if (meta.PixelWidth * 420L >= meta.PixelHeight * 660L) bitmap.DecodePixelWidth = Math.Min(meta.PixelWidth, 660);
-            else bitmap.DecodePixelHeight = Math.Min(meta.PixelHeight, 420);
+            double scale = Math.Min(1, Math.Min(660.0 / meta.PixelWidth, 420.0 / meta.PixelHeight));
+            scale = Math.Min(scale, Math.Sqrt(imagePixels / ((double)meta.PixelWidth * meta.PixelHeight)));
+            if (meta.PixelWidth >= meta.PixelHeight) bitmap.DecodePixelWidth = Math.Max(1, (int)(meta.PixelWidth * scale));
+            else bitmap.DecodePixelHeight = Math.Max(1, (int)(meta.PixelHeight * scale));
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
             bitmap.EndInit();
             bitmap.Freeze();

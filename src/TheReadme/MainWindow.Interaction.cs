@@ -1,3 +1,4 @@
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -86,13 +87,13 @@ public partial class MainWindow
             int offset = original.IndexOf(run.Text.AsSpan(), StringComparison.Ordinal);
             if (offset >= 0)
             {
-                int index = Math.Clamp(run.ContentStart.GetOffsetToPosition(insertion), 0, run.Text.Length);
+                int index = Math.Max(0, Math.Min(run.ContentStart.GetOffsetToPosition(insertion), run.Text.Length));
                 return (span.Start + offset + index, run);
             }
             return (direction == LogicalDirection.Forward ? span.Start : span.End + 1, null);
         }
         if (pointer.Paragraph?.Tag is SourceSpan block)
-            return (Math.Clamp(block.Start, 0, source.Length), null);
+            return (Math.Max(0, Math.Min(block.Start, source.Length)), null);
         return null;
     }
 
@@ -120,12 +121,25 @@ public partial class MainWindow
         {
             for (int offset = 0; (offset = text.IndexOf(query, offset, comparison)) >= 0; offset += query.Length)
                 count++;
-            if ((long)text.Length + (long)count * (replacement.Length - query.Length) > ReaderFile.MaxBytes)
+            long size = text.Length + (long)count * (replacement.Length - query.Length);
+            if (size > ReaderFile.MaxBytes)
             {
                 Status.Text = "Replacement would exceed the document size limit.";
                 return;
             }
-            if (count > 0) ApplyEdit(new(0, text.Length, text.Replace(query, replacement, comparison), 0, 0));
+            if (count > 0)
+            {
+                var updated = new StringBuilder((int)size);
+                int sourceOffset = 0;
+                int match;
+                while ((match = text.IndexOf(query, sourceOffset, comparison)) >= 0)
+                {
+                    updated.Append(text, sourceOffset, match - sourceOffset).Append(replacement);
+                    sourceOffset = match + query.Length;
+                }
+                updated.Append(text, sourceOffset, text.Length - sourceOffset);
+                ApplyEdit(new(0, text.Length, updated.ToString(), 0, 0));
+            }
             searchDelay.Stop();
             Search();
         }

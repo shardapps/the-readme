@@ -1,24 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>14.0</LangVersion>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Readme</AssemblyName>
     <RootNamespace>TheReadme</RootNamespace>
-    <Version>1.1.0-alpha.4</Version>
+    <Version>1.1.0-alpha.5</Version>
     <Company>Shard Apps</Company>
     <Product>The Readme</Product>
     <Description>A lightweight Windows Markdown and source editor.</Description>
     <ApplicationIcon>../../assets/readme.ico</ApplicationIcon>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetAuditMode>all</NuGetAuditMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <!-- The x64 Windows package uses the smaller WOW64 desktop CLR. -->
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-arm64'">
+    <PlatformTarget>arm64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="TheReadme.Smoke" />
     <PackageReference Include="Markdig" Version="1.6.0" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.Runtime.Serialization" />
     <Resource Include="../../assets/cover.jpg" Link="Assets/cover.jpg" />
     <Resource Include="../../assets/readme.ico" Link="Assets/readme.ico" />
   </ItemGroup>
