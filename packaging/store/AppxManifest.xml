@@ -7,7 +7,7 @@
          IgnorableNamespaces="uap uap3 desktop rescap">
   <Identity Name="ShardCoders.TheReadme-MarkdownEditor"
             Publisher="CN=D11F3529-FC83-43F5-B8D5-F94F40D30E7D"
-            Version="1.1.2.0" ProcessorArchitecture="x64" />
+            Version="1.1.3.0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>The Readme - Markdown Editor</DisplayName>
     <PublisherDisplayName>ShardCoders</PublisherDisplayName>

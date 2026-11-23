@@ -4,36 +4,36 @@
 
 **Short description**
 
-A native Windows editor for Markdown, plain text, and source files with live preview, Find and Replace, and customizable opening views.
+Open a README and fix a line without breaking your flow. Read, edit, and preview Markdown on Windows, or work directly in HDL, Python, JSON, and plain text.
 
 **Description**
 
-Open a README and get straight to the document. The Readme is a lightweight, native Windows editor for Markdown, plain text, and source files, with live Markdown preview and document search.
+Open a README, fix a line, and get back to work. The Readme is a free, open-source Markdown editor for Windows with live preview, Find and Replace, and plain-source editing. It gives developers, students, and documentation writers one workspace for project notes and the files they describe.
 
-Write Markdown and plain text. Click rendered text and start typing to edit at the same spot, or use Split for a live preview beside your draft. Choose which view opens by default and toggle the heading sidebar whenever you need it. Format Markdown with bold, italic, underline, headings, and inline code.
+Read a formatted document and click the text you want to change. Start typing and the editor opens at that spot. Use Read for a clear page, Edit for the Markdown source, or Split to see both side by side. Choose an opening view in Settings and show the heading outline when a long document needs it.
 
-Edit and save Python, C, C++, Java, HDL, JSON, CSV, logs, and more. Find and replace text with optional case matching, jump to a line, and control wrapping and auto-indent. The Readme recognizes 134 extensions and 17 project filenames.
+Open and edit Markdown, plain text, Python, C, C++, Java, HDL, Verilog, VHDL, JSON, YAML, CSV, logs, and more. The Readme recognizes 134 extensions and 17 project filenames. Use Go to line in code, turn on wrapping or auto-indent, and save using the original file type.
 
-Choose from seven palettes or follow Windows. Reading and editing adjust to the window, with zoom from 60% to 220%. Try the built-in Markdown, Python, and HDL examples, and adjust animation and indentation in Settings.
+Give a draft its structure with headings, bold, italic, underline, and inline code. Press Ctrl+H to replace one match or all matches and refine results with Match case. Use Ctrl+1, Ctrl+2, and Ctrl+3 to move between Read, Edit, and Split.
 
-Work offline on local files. This public preview is free and open source from Shard Apps. The publisher receives no document content or analytics.
+Pick from seven themes or follow Windows. Resize the window or zoom from 60% to 220% to make room for the way you read. Try the included README, Python, and HDL samples, or drag in a file and start working offline. The Readme is developed by Shard Apps and licensed under Apache 2.0.
 
 **What’s new**
 
-Choose how Markdown opens, start editing by typing in Read view, and use Ctrl+H to find and replace. The sidebar remembers your choice. This update also adds source editing for HDL and other code files, an HDL sample, optional auto-indent, refreshed colors, and smoother transitions.
+Turn a README into an editable draft by clicking a line and typing. Choose Read, Edit, Split, or Last used for new Markdown files. Use Ctrl+H for Find and Replace, edit HDL and other source files directly, and keep your place with a sidebar that remembers your choice. The update also brings refreshed themes, smoother transitions, and a save prompt that matches the app.
 
 **Product features**
 
-1. Markdown and plain-text editing with live split preview.
-2. Bold, italic, underline, strikethrough, inline code, and heading styles in Markdown.
-3. Plain-source editing for code, HDL, data, configuration, and logs.
-4. Find and Replace, heading outline, line wrapping, and Go to line.
-5. Seven themes, system appearance, and 60–220% zoom.
-6. Offline use with drag and drop, recent files, and built-in samples.
+1. Click a word in Read view and type to edit at that position.
+2. See Markdown take shape with live split preview and a formatting toolbar.
+3. Edit and save HDL, Python, C, C++, Java, JSON, and many other text formats.
+4. Replace one match or all matches with Ctrl+H and optional case matching.
+5. Start in your preferred view, with a sidebar that remembers your choice.
+6. Work offline with seven themes, adjustable zoom, and built-in samples.
 
 **Search terms**
 
-markdown editor, readme viewer, markdown preview, code viewer, plain text editor, open md file, offline markdown
+markdown editor, readme viewer, markdown preview, plain text editor, hdl editor, find and replace, code editor
 
 **Listing details**
 
@@ -52,7 +52,7 @@ markdown editor, readme viewer, markdown preview, code viewer, plain text editor
 | 05-home.png | Open a local file, drop it into the window, or try the built-in examples. |
 | 06-replace.png | Find and replace text with case matching and a live split preview. |
 | 07-find.png | Search for a phrase in the rendered document and jump between matches. |
-| 08-focus.png | Hide the outline and increase zoom to use the full width for reading. |
+| 08-unsaved.png | Save, discard, or keep editing from the themed unsaved-changes prompt. |
 | 09-opening.png | Choose how Markdown opens and control automatic editing in Settings. |
 | 10-hdl.png | Edit and save an HDL chip definition using the built-in example. |
 

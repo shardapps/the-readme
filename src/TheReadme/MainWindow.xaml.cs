@@ -632,7 +632,7 @@ public partial class MainWindow : Window
 
     private void ZoomWithWheel(object sender, MouseWheelEventArgs e)
     {
-        if (!DocumentArea.IsVisible || SettingsPane.IsVisible || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return;
+        if (unsavedPrompt is not null || !DocumentArea.IsVisible || SettingsPane.IsVisible || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return;
         SetZoom(preferences.Zoom + (e.Delta > 0 ? 10 : -10));
         e.Handled = true;
     }
@@ -643,6 +643,15 @@ public partial class MainWindow : Window
 
     private async void HandleKey(object sender, KeyEventArgs e)
     {
+        if (unsavedPrompt is not null)
+        {
+            if (e.Key == Key.Escape)
+            {
+                unsavedPrompt.TrySetResult(UnsavedChoice.Cancel);
+                e.Handled = true;
+            }
+            return;
+        }
         if (e.Key == Key.Escape)
         {
             if (SettingsPane.IsVisible) ToggleSettings(sender, e);

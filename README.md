@@ -4,7 +4,9 @@
 
 # The Readme
 
-**A native Windows editor for Markdown, plain text, and source code, with live Markdown preview.**
+**Open a README, fix a line, and get back to work.**
+
+Native Windows Markdown editor with live preview, Find and Replace, and source editing.
 
 **~2.6 MB per installer · 134 recognized extensions · 7 themes plus System**
 
@@ -18,13 +20,13 @@
 
 Source editing, opening preferences, and Find and Replace are available in the updated preview build.
 
-The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md`, plain text, and source code. Preview Markdown as you type, or work directly in Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats.
+The Readme by Shard Apps is a free, Apache 2.0 desktop app for reading and editing `README.md`, plain text, and source files. Click rendered Markdown and type to fix a line, or use a split view to preview a draft as you write. Edit Python, C, C++, Java, HDL, Rust, JavaScript, JSON, and CSV in the same workspace.
 
 ![The Readme home window with a lilac folded-paper illustration, recent files, drag and drop, and interactive samples](docs/screenshots/welcome.png)
 
 ## A small download for Windows
 
-The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Windows Presentation Foundation (WPF) controls and the shared Microsoft .NET 10 Windows Desktop Runtime. Document editing and preview work offline after that runtime is installed. File reads and Markdown parsing run in the background, while the native reading surface adjusts to the space available.
+The GitHub x64 and Arm64 setup EXEs are about **2.6 MB each** and use the shared Microsoft .NET 10 Windows Desktop Runtime. The larger Microsoft Store install includes the runtime for a one-step installation. The app uses native Windows Presentation Foundation (WPF) controls. File reads and Markdown parsing run in the background.
 
 ## Write Markdown and plain text
 
@@ -37,6 +39,8 @@ The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Wind
 ![Markdown source and live preview side by side in the Ocean theme, with formatting and save controls](docs/screenshots/editor.png)
 
 ![Find and Replace panel above the Markdown editor and its live preview](docs/screenshots/replace.png)
+
+![Unsaved-changes prompt styled in the Midnight theme](docs/screenshots/unsaved.png)
 
 ## Read and navigate
 

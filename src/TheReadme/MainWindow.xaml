@@ -21,6 +21,7 @@
     <SolidColorBrush x:Key="Accent" Color="#6034BA"/>
     <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="Hover" Color="#E9DDF8"/>
+    <SolidColorBrush x:Key="DialogScrim" Color="#660B0913"/>
     <Style x:Key="Focus" TargetType="Control">
       <Setter Property="Template">
         <Setter.Value>
@@ -398,6 +399,25 @@
                      TextTrimming="CharacterEllipsis" AutomationProperties.LiveSetting="Polite"/>
         </DockPanel>
       </Border>
+      <Grid x:Name="UnsavedDialog" Grid.RowSpan="4" Panel.ZIndex="10" Visibility="Collapsed" Background="Transparent"
+            KeyboardNavigation.TabNavigation="Cycle" KeyboardNavigation.ControlTabNavigation="Cycle">
+        <Border Background="{DynamicResource DialogScrim}"/>
+        <Border x:Name="UnsavedCard" Width="478" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Accent}" BorderThickness="1"
+                CornerRadius="16" Padding="23" AutomationProperties.Name="Unsaved changes">
+          <StackPanel>
+            <TextBlock Text="Save changes?" FontSize="24" FontWeight="SemiBold" AutomationProperties.LiveSetting="Polite"/>
+            <TextBlock x:Name="UnsavedFile" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,4" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+            <TextBlock x:Name="UnsavedHint" Foreground="{DynamicResource Muted}" TextWrapping="Wrap"/>
+            <WrapPanel HorizontalAlignment="Right" Margin="0,19,0,0">
+              <Button x:Name="UnsavedCancel" Content="Keep editing" Tag="Cancel" Click="ChooseUnsavedAction" Margin="0,0,4,0"/>
+              <Button x:Name="UnsavedDiscard" Content="Discard changes" Tag="Discard" Click="ChooseUnsavedAction" Margin="0,0,8,0"/>
+              <Button x:Name="UnsavedSave" Content="Save" Tag="Save" Click="ChooseUnsavedAction" Style="{StaticResource Primary}" MinWidth="75"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
     </Grid>
   </Border>
 </Window>

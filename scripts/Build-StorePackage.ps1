@@ -37,7 +37,8 @@ if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $packagesRoot -PathType Con
 foreach ($architecture in @('x64', 'arm64')) {
     $publish = Join-Path $workspace $architecture
     $arguments = @('publish', $project, '-c', 'Release', '-r', "win-$architecture", '--self-contained',
-        '-o', $publish, '-p:RestoreLockedMode=true', '-p:DebugType=None', '-p:DebugSymbols=false')
+        '-o', $publish, '-p:RestoreLockedMode=true', '-p:DebugType=None', '-p:DebugSymbols=false',
+        '-p:SatelliteResourceLanguages=en-US')
     if ($BuildArtifactsPath) { $arguments += @('--artifacts-path', $BuildArtifactsPath) }
     & $Dotnet @arguments
     if ($LASTEXITCODE -ne 0) { throw "Publish failed for $architecture." }
