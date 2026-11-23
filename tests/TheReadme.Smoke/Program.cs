@@ -331,10 +331,10 @@ internal static class Program
         editor.AppendText("\n\n## Live alpha heading");
         await WaitUntil(() => new DocumentSearch(preview.Document).Text.Contains("Live alpha heading"), token);
         Require(window.Title.Contains(" *"), "Live edit stays unsaved until saved");
-        window.ConfirmUnsavedForTest = () => MessageBoxResult.Cancel;
+        window.ConfirmUnsavedForTest = () => MainWindow.UnsavedChoice.Cancel;
         await window.OpenFile(pythonPath);
         Require(editor.Text.Contains("Live alpha heading"), "Cancel protects draft when opening another file");
-        window.ConfirmUnsavedForTest = () => MessageBoxResult.No;
+        window.ConfirmUnsavedForTest = () => MainWindow.UnsavedChoice.Discard;
         await window.OpenFile(Path.Combine(Path.GetDirectoryName(path)!, "missing.md"));
         Require(editor.Text.Contains("Live alpha heading"), "Failed open preserves the draft");
         Task pendingOpen = window.OpenFile(Path.Combine(Path.GetDirectoryName(path)!, "many.md"));
@@ -366,7 +366,7 @@ internal static class Program
         Require(!prefs.AutoIndentSource && !prefs.AnimateTransitions && !window.AutoIndentSource(), "Editing and motion preferences take effect");
         window.DismissSettingsAt(new Point(8, 160));
         editor.AppendText("Not(in=in, out=out);\n}");
-        window.ConfirmUnsavedForTest = () => MessageBoxResult.Cancel;
+        window.ConfirmUnsavedForTest = () => MainWindow.UnsavedChoice.Cancel;
         await window.OpenFile(pythonPath);
         Require(window.Title.StartsWith("LogicCopy.hdl *", StringComparison.Ordinal), "Opening another file protects unsaved HDL");
         window.ConfirmUnsavedForTest = null;
@@ -501,6 +501,31 @@ internal static class Program
         editor.Undo();
         Require(editor.Text == original, "Undo restores the original Markdown");
         Click("CloseFindButton");
+        var prompt = Control<Grid>("UnsavedDialog");
+        string nextPath = Path.Combine(folder, "next.txt");
+        File.WriteAllText(nextPath, "Next document");
+        editor.AppendText("\n\nDraft");
+        Task pending = window.OpenFile(nextPath);
+        Require(!pending.IsCompleted && prompt.IsVisible && Control<TextBlock>("UnsavedFile").Text == "Interaction.md",
+            "The themed prompt protects the current draft");
+        await window.OpenFile(Path.Combine(folder, "missing.md"));
+        Require(!pending.IsCompleted && prompt.IsVisible, "A second open request does not take over the prompt");
+        Click("UnsavedCancel");
+        await pending;
+        Require(editor.Text.EndsWith("Draft", StringComparison.Ordinal) && !prompt.IsVisible && File.ReadAllText(path) == original,
+            "Keep editing preserves the draft and leaves the file unchanged");
+        pending = window.OpenFile(nextPath);
+        Click("UnsavedDiscard");
+        await pending;
+        Require(editor.Text == "Next document" && File.ReadAllText(path) == original, "Discard changes opens the next file without saving");
+        await window.OpenFile(path);
+        Click("SourceButton");
+        editor.AppendText("\n\nSaved draft");
+        pending = window.OpenFile(nextPath);
+        Click("UnsavedSave");
+        await pending;
+        Require(editor.Text == "Next document" && File.ReadAllText(path).EndsWith("Saved draft", StringComparison.Ordinal),
+            "Save writes the original document before switching");
         Click("ToolbarHomeButton");
         if (screenshots is not null)
         {
@@ -519,6 +544,15 @@ internal static class Program
             await Task.Delay(210, token);
             Capture(window, screenshots, "opening.png");
             window.DismissSettingsAt(new Point(8, 160));
+            ChooseTheme(window, "Midnight");
+            Click("SourceButton");
+            editor.AppendText("\n\nDraft notes");
+            Click("ToolbarHomeButton");
+            Require(prompt.IsVisible && (string)Control<Button>("UnsavedSave").Content == "Save as…", "The sample offers Save As");
+            await Task.Delay(210, token);
+            Capture(window, screenshots, "unsaved.png");
+            Click("UnsavedDiscard");
+            await WaitUntil(() => !prompt.IsVisible, token);
             Click("ToolbarHomeButton");
         }
     }

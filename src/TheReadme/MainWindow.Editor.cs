@@ -52,7 +52,9 @@ public partial class MainWindow
     private bool saving;
     private bool closePromptPending;
     private bool allowClosing;
-    internal Func<MessageBoxResult>? ConfirmUnsavedForTest { get; set; }
+    internal enum UnsavedChoice { Save, Discard, Cancel }
+    private TaskCompletionSource<UnsavedChoice>? unsavedPrompt;
+    internal Func<UnsavedChoice>? ConfirmUnsavedForTest { get; set; }
 
     private void LoadEditor(string text, bool loadNow)
     {
@@ -294,12 +296,39 @@ public partial class MainWindow
 
     private async Task<bool> CanLeaveDocument()
     {
-        if (saving) return false;
+        if (saving || unsavedPrompt is not null) return false;
         if (!dirty) return true;
-        MessageBoxResult choice = ConfirmUnsavedForTest?.Invoke() ?? MessageBox.Show(this,
-            $"Save changes to {currentFile!.Name} before leaving?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning,
-            MessageBoxResult.Cancel);
-        return choice == MessageBoxResult.No || (choice == MessageBoxResult.Yes && await SaveCurrent(saveAs: false));
+        var choice = ConfirmUnsavedForTest?.Invoke() ?? await AskAboutUnsavedChanges(currentFile!);
+        return choice == UnsavedChoice.Discard || (choice == UnsavedChoice.Save && await SaveCurrent(saveAs: false));
+    }
+
+    private async Task<UnsavedChoice> AskAboutUnsavedChanges(ReaderFile file)
+    {
+        IInputElement? previousFocus = Keyboard.FocusedElement;
+        var prompt = new TaskCompletionSource<UnsavedChoice>(TaskCreationOptions.RunContinuationsAsynchronously);
+        unsavedPrompt = prompt;
+        DismissSettings();
+        UnsavedFile.Text = file.Name;
+        UnsavedHint.Text = file.IsOnDisk ? "Discarding changes will leave the saved document as it was." :
+            "Save a copy to keep your draft, or discard it.";
+        UnsavedSave.Content = file.IsOnDisk ? "Save" : "Save as…";
+        UnsavedDialog.Visibility = Visibility.Visible;
+        FadeIn(UnsavedCard, travel: 5);
+        UnsavedCancel.Focus();
+        try { return await prompt.Task; }
+        finally
+        {
+            UnsavedDialog.Visibility = Visibility.Collapsed;
+            unsavedPrompt = null;
+            if (Source.IsVisible) Source.Focus();
+            else if (previousFocus is UIElement { IsVisible: true, IsEnabled: true }) Keyboard.Focus(previousFocus);
+        }
+    }
+
+    private void ChooseUnsavedAction(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string value } && Enum.TryParse(value, out UnsavedChoice choice))
+            unsavedPrompt?.TrySetResult(choice);
     }
 
     protected override void OnClosing(CancelEventArgs e)

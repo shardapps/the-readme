@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0-alpha.4
+
+- Use a themed in-app prompt for unsaved documents. Choose Save, Discard changes, or Keep editing when closing or switching files.
+
 ## 1.1.0-alpha.3
 
 - Choose Read, Edit, Split, or Last used when opening Markdown. The sidebar starts closed and remembers when you open it.

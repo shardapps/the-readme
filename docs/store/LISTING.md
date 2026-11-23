@@ -8,7 +8,7 @@ A native Windows editor for Markdown, plain text, and source files with live pre
 
 **Description**
 
-Open a README and get straight to the document. The Readme is a lightweight, native Windows editor for Markdown, plain text, and source files, with live Markdown preview and document search.
+Open a README and get straight to the document. The Readme is a native Windows editor for Markdown, plain text, and source files, with live Markdown preview and document search.
 
 Write Markdown and plain text. Click rendered text and start typing to edit at the same spot, or use Split for a live preview beside your draft. Choose which view opens by default and toggle the heading sidebar whenever you need it. Format Markdown with bold, italic, underline, headings, and inline code.
 
@@ -20,7 +20,7 @@ Work offline on local files. This public preview is free and open source from Sh
 
 **What’s new**
 
-Choose how Markdown opens, start editing by typing in Read view, and use Ctrl+H to find and replace. The sidebar remembers your choice. This update also adds source editing for HDL and other code files, an HDL sample, optional auto-indent, refreshed colors, and smoother transitions.
+Choose how Markdown opens, start editing by typing in Read view, and use Ctrl+H to find and replace. The sidebar remembers your choice. This update adds HDL and source editing, a themed unsaved-changes prompt, refreshed colors, and smoother transitions.
 
 **Product features**
 
@@ -52,7 +52,7 @@ markdown editor, readme viewer, markdown preview, code viewer, plain text editor
 | 05-home.png | Open a local file, drop it into the window, or try the built-in examples. |
 | 06-replace.png | Find and replace text with case matching and a live split preview. |
 | 07-find.png | Search for a phrase in the rendered document and jump between matches. |
-| 08-focus.png | Hide the outline and increase zoom to use the full width for reading. |
+| 08-unsaved.png | Save, discard, or keep editing from the themed unsaved-changes prompt. |
 | 09-opening.png | Choose how Markdown opens and control automatic editing in Settings. |
 | 10-hdl.png | Edit and save an HDL chip definition using the built-in example. |
 

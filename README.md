@@ -24,7 +24,7 @@ The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.m
 
 ## A small download for Windows
 
-The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Windows Presentation Foundation (WPF) controls and the shared Microsoft .NET 10 Windows Desktop Runtime. Document editing and preview work offline after that runtime is installed. File reads and Markdown parsing run in the background, while the native reading surface adjusts to the space available.
+The GitHub x64 and Arm64 setup EXEs are about **2.6 MB each** and use the shared Microsoft .NET 10 Windows Desktop Runtime. The larger Microsoft Store install includes the runtime for a one-step installation. The app uses native Windows Presentation Foundation (WPF) controls. File reads and Markdown parsing run in the background.
 
 ## Write Markdown and plain text
 
@@ -37,6 +37,8 @@ The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Wind
 ![Markdown source and live preview side by side in the Ocean theme, with formatting and save controls](docs/screenshots/editor.png)
 
 ![Find and Replace panel above the Markdown editor and its live preview](docs/screenshots/replace.png)
+
+![Unsaved-changes prompt styled in the Midnight theme](docs/screenshots/unsaved.png)
 
 ## Read and navigate
 
