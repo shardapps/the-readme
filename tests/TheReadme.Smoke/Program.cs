@@ -3,6 +3,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -92,7 +93,7 @@ internal static class Program
         Require(DocumentLinks.TryExternal("https://example.test", out _), "HTTPS destination");
         Require(WindowsIntegration.SamePath("\"C:\\Apps\\The Readme\\\"", "c:\\apps\\the readme"), "PATH casing and quoting");
 
-        var prefs = new ReaderPreferences(Path.Combine(temporary, "prefs.json")) { Theme = "Lilac" };
+        var prefs = new ReaderPreferences(Path.Combine(temporary, "prefs.json")) { Theme = "Lilac", ShowSidebar = true };
         var window = new MainWindow(null, prefs)
         {
             WindowStartupLocation = WindowStartupLocation.Manual, Left = -12000, Top = -12000,
@@ -161,6 +162,7 @@ internal static class Program
         Require(preview.Selection?.Text == "needle", "Find UI selects visible text");
 
         await CheckWorkspace(window, prefs, path, fixture, pythonPath, screenshots, token);
+        await CheckOpeningAndReplace(window, prefs, temporary, screenshots, token);
 
         if (screenshots is not null)
         {
@@ -421,6 +423,103 @@ internal static class Program
             Capture(window, screenshots, "focus.png");
             Click("ZoomLabel");
             Click("RailButton");
+        }
+    }
+
+    private static async Task CheckOpeningAndReplace(MainWindow window, ReaderPreferences prefs, string folder,
+        string? screenshots, CancellationToken token)
+    {
+        T Control<T>(string name) where T : FrameworkElement => (T)window.FindName(name);
+        void Click(string name) => Control<Button>(name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var preview = Control<FlowDocumentScrollViewer>("Preview");
+        var editor = Control<TextBox>("Source");
+        var initialView = Control<ComboBox>("OpeningViewBox");
+        string prefsPath = Path.Combine(folder, "prefs.json");
+        string legacyPath = Path.Combine(folder, "legacy.json");
+        File.WriteAllText(legacyPath, """{"Theme":"Moss"}""");
+        Require(!ReaderPreferences.Load(legacyPath).ShowSidebar && new ReaderPreferences().OpeningView == MarkdownOpeningView.Read,
+            "New and older settings without a sidebar choice default to a closed sidebar and Read view");
+
+        var rail = Control<Border>("Rail");
+        if (rail.IsVisible) Click("RailButton");
+        Require(!ReaderPreferences.Load(prefsPath).ShowSidebar && !rail.IsVisible && Control<Button>("ToolbarHomeButton").IsVisible,
+            "Closed sidebar persists and Home remains available");
+        Click("RailButton");
+        Require(ReaderPreferences.Load(prefsPath).ShowSidebar && rail.IsVisible, "Opting into the sidebar persists");
+        Click("RailButton");
+
+        string path = Path.Combine(folder, "Interaction.md");
+        const string original = "# Opening views\n\nTest a **needle** here.\n\nNeedle needle.";
+        File.WriteAllText(path, original);
+        initialView.SelectedIndex = 2;
+        await window.OpenFile(path);
+        Require(preview.IsVisible && editor.IsVisible && ReaderPreferences.Load(prefsPath).OpeningView == MarkdownOpeningView.Split,
+            "Split is a persistent opening preference");
+        Click("SourceButton");
+        initialView.SelectedIndex = 3;
+        await window.OpenFile(path);
+        Require(!preview.IsVisible && editor.IsVisible && ReaderPreferences.Load(prefsPath).LastMarkdownView == MarkdownOpeningView.Edit,
+            "Last used restores the chosen Markdown view");
+        initialView.SelectedIndex = 0;
+        await window.OpenFile(path);
+        Require(preview.IsVisible && !editor.IsVisible, "Read opens the rendered document");
+
+        var index = new DocumentSearch(preview.Document);
+        var pointer = index.PointerAt(index.Text.IndexOf("needle", StringComparison.Ordinal) + 4, end: false)!;
+        preview.Selection?.Select(pointer, pointer);
+        void Type(string text)
+        {
+            var composition = new TextComposition(InputManager.Current, preview, text);
+            preview.RaiseEvent(new TextCompositionEventArgs(InputManager.Current.PrimaryKeyboardDevice, composition)
+                { RoutedEvent = TextCompositionManager.PreviewTextInputEvent });
+        }
+
+        prefs.TypeToEdit = false;
+        Type("!");
+        Require(preview.IsVisible && !editor.IsVisible, "Type-to-edit can be disabled");
+        prefs.TypeToEdit = true;
+        Type("é");
+        Require(editor.IsVisible && editor.Text == original.Replace("**needle**", "**needéle**", StringComparison.Ordinal),
+            "The first composed character edits the actual Markdown inside emphasis");
+        editor.Undo();
+        Require(editor.Text == original, "Type-to-edit inserts one undoable change");
+
+        Click("ReadButton");
+        Click("FindButton");
+        Click("ShowReplaceButton");
+        Require(editor.IsVisible && Control<WrapPanel>("ReplaceRow").IsVisible, "Replace opens the source editor from Read view");
+        Control<TextBox>("FindBox").Text = "needle";
+        Control<TextBox>("ReplaceBox").Text = "pin";
+        Control<CheckBox>("MatchCase").IsChecked = true;
+        await WaitUntil(() => Control<TextBlock>("FindCount").Text == "1 of 2", token);
+        Click("ReplaceNextButton");
+        Require(editor.Text.Contains("**pin**") && editor.Text.Contains("Needle needle."), "Replace next edits a single case-matched value");
+        Click("ReplaceAllButton");
+        Require(editor.Text.Contains("Needle pin."), "Replace all respects Match case");
+        editor.Undo();
+        Require(editor.Text.Contains("Needle needle."), "Replace all is a single undo step");
+        editor.Undo();
+        Require(editor.Text == original, "Undo restores the original Markdown");
+        Click("CloseFindButton");
+        Click("ToolbarHomeButton");
+        if (screenshots is not null)
+        {
+            Require(ClickButton(Control<ScrollViewer>("Welcome"), "Try a sample →"), "Markdown sample opens from Home");
+            Click("SplitButton");
+            Click("FindButton");
+            Click("ShowReplaceButton");
+            Control<TextBox>("FindBox").Text = "sample";
+            Control<TextBox>("ReplaceBox").Text = "example";
+            await WaitUntil(() => Control<TextBlock>("FindCount").Text.StartsWith("1 of ", StringComparison.Ordinal), token);
+            await Task.Delay(210, token);
+            Capture(window, screenshots, "replace.png");
+            Click("CloseFindButton");
+            Click("ReadButton");
+            Click("SettingsButton");
+            await Task.Delay(210, token);
+            Capture(window, screenshots, "opening.png");
+            window.DismissSettingsAt(new Point(8, 160));
+            Click("ToolbarHomeButton");
         }
     }
 

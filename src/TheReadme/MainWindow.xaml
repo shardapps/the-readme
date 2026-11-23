@@ -12,15 +12,15 @@
     <shell:WindowChrome CaptionHeight="43" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False"/>
   </shell:WindowChrome.WindowChrome>
   <Window.Resources>
-    <SolidColorBrush x:Key="Base" Color="#F8F7FC"/>
-    <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="Soft" Color="#F0EDF8"/>
-    <SolidColorBrush x:Key="Line" Color="#DFDAEA"/>
-    <SolidColorBrush x:Key="Ink" Color="#211B2F"/>
-    <SolidColorBrush x:Key="Muted" Color="#635B71"/>
-    <SolidColorBrush x:Key="Accent" Color="#6243BD"/>
+    <SolidColorBrush x:Key="Base" Color="#F4F1FA"/>
+    <SolidColorBrush x:Key="Surface" Color="#FEFCFF"/>
+    <SolidColorBrush x:Key="Soft" Color="#F1EAFB"/>
+    <SolidColorBrush x:Key="Line" Color="#DBD1EC"/>
+    <SolidColorBrush x:Key="Ink" Color="#231933"/>
+    <SolidColorBrush x:Key="Muted" Color="#594A70"/>
+    <SolidColorBrush x:Key="Accent" Color="#6034BA"/>
     <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="Hover" Color="#E7E1F5"/>
+    <SolidColorBrush x:Key="Hover" Color="#E9DDF8"/>
     <Style x:Key="Focus" TargetType="Control">
       <Setter Property="Template">
         <Setter.Value>
@@ -169,6 +169,8 @@
         <DockPanel Margin="13,0" VerticalAlignment="Center" LastChildFill="False">
           <Button x:Name="RailButton" Style="{StaticResource IconButton}" Content="&#xE700;" Click="ToggleRail" DockPanel.Dock="Left"
                   ToolTip="Toggle sidebar (Ctrl+B)" AutomationProperties.Name="Toggle sidebar"/>
+          <Button x:Name="ToolbarHomeButton" Style="{StaticResource IconButton}" Content="&#xE80F;" Click="GoHome" DockPanel.Dock="Left"
+                  ToolTip="Home (Alt+Home)" AutomationProperties.Name="Home" Visibility="Collapsed"/>
           <Button Content="Open file" Click="PickFile" DockPanel.Dock="Left" Margin="4,0,0,0" ToolTip="Open a file (Ctrl+O)"/>
           <Button Content="New" Click="NewDocument" DockPanel.Dock="Left" ToolTip="New Markdown document (Ctrl+N)"/>
           <Button x:Name="ReloadButton" Style="{StaticResource IconButton}" Content="&#xE72C;" Click="Reload" DockPanel.Dock="Left"
@@ -179,17 +181,17 @@
                   ToolTip="Find in document (Ctrl+F)" AutomationProperties.Name="Find in document" IsEnabled="False"/>
           <Border x:Name="ViewModes" Background="{DynamicResource Soft}" CornerRadius="9" DockPanel.Dock="Right" Margin="0,0,9,0" Visibility="Collapsed">
             <StackPanel Orientation="Horizontal" Margin="2">
-              <Button x:Name="ReadButton" Content="Read" Click="ShowRendered" MinHeight="28" Padding="12,4" IsEnabled="False"/>
-              <Button x:Name="SourceButton" Content="Edit" Click="ShowSource" MinHeight="28" Padding="12,4" IsEnabled="False"/>
-              <Button x:Name="SplitButton" Content="Split" Click="ShowSplit" MinHeight="28" Padding="12,4" IsEnabled="False"/>
+              <Button x:Name="ReadButton" Content="Read" Click="ShowRendered" MinHeight="28" Padding="12,4" IsEnabled="False" ToolTip="Read (Ctrl+1)"/>
+              <Button x:Name="SourceButton" Content="Edit" Click="ShowSource" MinHeight="28" Padding="12,4" IsEnabled="False" ToolTip="Edit (Ctrl+2)"/>
+              <Button x:Name="SplitButton" Content="Split" Click="ShowSplit" MinHeight="28" Padding="12,4" IsEnabled="False" ToolTip="Split (Ctrl+3)"/>
             </StackPanel>
           </Border>
         </DockPanel>
       </Border>
 
       <Grid Grid.Row="2">
-        <Grid.ColumnDefinitions><ColumnDefinition x:Name="RailWidth" Width="219"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <Border x:Name="Rail" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0" Padding="16,24,14,15">
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="RailWidth" Width="0"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border x:Name="Rail" Visibility="Collapsed" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0" Padding="16,24,14,15">
           <Grid>
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <TextBlock x:Name="RailHeading" Text="Recent files" FontWeight="SemiBold" Margin="8,0,0,12"/>
@@ -282,13 +284,23 @@
               </Grid>
             </Border>
             <Border x:Name="FindBar" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource Base}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="15,6">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Find" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBox x:Name="FindBox" Width="195" MaxLength="512" VerticalContentAlignment="Center" TextChanged="SearchChanged" AutomationProperties.Name="Find in document"/>
-                <TextBlock x:Name="FindCount" MinWidth="79" TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
-                <Button Content="↑" Click="FindPrevious" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous match"/>
-                <Button Content="↓" Click="FindNext" ToolTip="Next match (Enter)" AutomationProperties.Name="Next match"/>
-                <Button x:Name="CloseFindButton" Content="×" Click="CloseFind" ToolTip="Close find (Esc)" AutomationProperties.Name="Close find"/>
+              <StackPanel>
+                <WrapPanel>
+                  <Label Content="_Find" Target="{Binding ElementName=FindBox}" Width="68" VerticalContentAlignment="Center" Foreground="{DynamicResource Ink}"/>
+                  <TextBox x:Name="FindBox" Width="185" MaxLength="512" VerticalContentAlignment="Center" TextChanged="SearchChanged" AutomationProperties.Name="Find in document"/>
+                  <TextBlock x:Name="FindCount" MinWidth="70" TextAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" AutomationProperties.LiveSetting="Polite"/>
+                  <Button Content="↑" Click="FindPrevious" Padding="8,5" ToolTip="Previous match (Shift+Enter)" AutomationProperties.Name="Previous match"/>
+                  <Button Content="↓" Click="FindNext" Padding="8,5" ToolTip="Next match (Enter)" AutomationProperties.Name="Next match"/>
+                  <Button x:Name="ShowReplaceButton" Content="Replace…" Click="OpenReplace" Padding="8,5" ToolTip="Find and replace (Ctrl+H)"/>
+                  <CheckBox x:Name="MatchCase" Content="Match case" Click="SearchCaseChanged" Foreground="{DynamicResource Ink}" Margin="8,0" VerticalAlignment="Center"/>
+                  <Button x:Name="CloseFindButton" Content="×" Click="CloseFind" Padding="8,5" ToolTip="Close find (Esc)" AutomationProperties.Name="Close find"/>
+                </WrapPanel>
+                <WrapPanel x:Name="ReplaceRow" Visibility="Collapsed" Margin="0,3,0,0">
+                  <Label Content="Re_place" Target="{Binding ElementName=ReplaceBox}" Width="68" VerticalContentAlignment="Center" Foreground="{DynamicResource Ink}"/>
+                  <TextBox x:Name="ReplaceBox" Width="185" MaxLength="512" VerticalContentAlignment="Center" AutomationProperties.Name="Replacement text"/>
+                  <Button x:Name="ReplaceNextButton" Content="Replace next" Click="ReplaceNext" ToolTip="Replace next (Enter)"/>
+                  <Button x:Name="ReplaceAllButton" Content="Replace all" Click="ReplaceAll"/>
+                </WrapPanel>
               </StackPanel>
             </Border>
             <Border x:Name="EditorTools" Grid.Row="2" Visibility="Collapsed" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="9,4">
@@ -327,7 +339,7 @@
               <Grid.RowDefinitions><RowDefinition x:Name="EditorRow" Height="0"/><RowDefinition x:Name="SplitRow" Height="0"/><RowDefinition Height="*"/></Grid.RowDefinitions>
               <Border x:Name="EditorDivider" Background="{DynamicResource Line}" Visibility="Collapsed"/>
               <FlowDocumentScrollViewer x:Name="Preview" Grid.Column="2" Grid.Row="2" Margin="26,10,16,0" VerticalScrollBarVisibility="Auto"
-                    IsSelectionEnabled="True" IsInactiveSelectionHighlightEnabled="True" SelectionBrush="{DynamicResource Accent}"
+                    Focusable="True" PreviewTextInput="PreviewTyped" IsSelectionEnabled="True" IsInactiveSelectionHighlightEnabled="True" SelectionBrush="{DynamicResource Accent}"
                     MinZoom="60" MaxZoom="220" IsToolBarVisible="False" AutomationProperties.Name="Markdown preview"/>
               <TextBox x:Name="Source" Grid.Column="2" Grid.Row="2" Margin="14,8,12,10" Padding="12" IsReadOnly="True"
                      IsInactiveSelectionHighlightEnabled="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"
@@ -348,7 +360,17 @@
                 <TextBlock Text="Reading theme" FontWeight="SemiBold" Margin="0,0,0,6"/>
                 <WrapPanel x:Name="ThemeButtons" Margin="0,0,0,12"/>
                 <Separator Background="{DynamicResource Line}"/>
-                <TextBlock Text="Editing and motion" FontWeight="SemiBold" Margin="0,7,0,5"/>
+                <TextBlock Text="Opening and editing" FontWeight="SemiBold" Margin="0,7,0,5"/>
+                <DockPanel Margin="2,2,0,8">
+                  <ComboBox x:Name="OpeningViewBox" DockPanel.Dock="Right" MinWidth="116" SelectionChanged="ChangeOpeningView" AutomationProperties.Name="Default Markdown view">
+                    <ComboBoxItem Tag="Read">Read</ComboBoxItem>
+                    <ComboBoxItem Tag="Edit">Edit</ComboBoxItem>
+                    <ComboBoxItem Tag="Split">Split</ComboBoxItem>
+                    <ComboBoxItem Tag="LastUsed">Last used</ComboBoxItem>
+                  </ComboBox>
+                  <TextBlock Text="Open Markdown in" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                </DockPanel>
+                <CheckBox x:Name="TypeToEditToggle" Content="Start editing when I type in Read view" Foreground="{DynamicResource Ink}" Margin="2,2,0,6" Click="ChangeEditorOptions"/>
                 <CheckBox x:Name="AutoIndentToggle" Content="Keep indentation on new code lines" Foreground="{DynamicResource Ink}" Margin="2,2,0,6" Click="ChangeEditorOptions"/>
                 <CheckBox x:Name="MotionToggle" Content="Animate transitions" Foreground="{DynamicResource Ink}" Margin="2,2,0,12" Click="ChangeEditorOptions"/>
                 <Separator Background="{DynamicResource Line}"/>

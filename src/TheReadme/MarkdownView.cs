@@ -21,7 +21,8 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAutoIdentifiers(AutoIdentifierOptions.GitHub).UsePipeTables().UseTaskLists().UseAutoLinks()
-        .UseEmphasisExtras(EmphasisExtraOptions.Default | EmphasisExtraOptions.Inserted).DisableHtml().Build();
+        .UseEmphasisExtras(EmphasisExtraOptions.Default | EmphasisExtraOptions.Inserted)
+        .UsePreciseSourceLocation().DisableHtml().Build();
     private static readonly FontFamily Mono = new("Cascadia Mono, Consolas");
     private readonly List<OutlineItem> outline = [];
     private readonly HashSet<string> anchors = new(StringComparer.OrdinalIgnoreCase);
@@ -78,7 +79,7 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
             switch (block)
             {
                 case HeadingBlock heading:
-                    var title = Paragraph(heading.Inline);
+                    var title = Paragraph(heading);
                     title.FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI");
                     title.FontWeight = FontWeights.SemiBold;
                     title.FontSize = heading.Level switch { 1 => 39, 2 => 27, 3 => 22, _ => 18 };
@@ -90,14 +91,22 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
                     destination.Add(title);
                     break;
                 case ParagraphBlock paragraph:
-                    destination.Add(Paragraph(paragraph.Inline));
+                    destination.Add(Paragraph(paragraph));
                     break;
                 case CodeBlock code:
-                    destination.Add(new Wpf.Paragraph(new Run(code.Lines.ToString()))
+                    var codeParagraph = new Wpf.Paragraph
                     {
+                        Tag = code.Span,
                         FontFamily = Mono, FontSize = 14, LineHeight = 22, Background = Brush("Soft"),
                         Padding = new Thickness(16, 11, 16, 11), Margin = new Thickness(0, 4, 0, 14)
-                    });
+                    };
+                    for (int index = 0; index < code.Lines.Count; index++)
+                    {
+                        if (index > 0) codeParagraph.Inlines.Add(new LineBreak());
+                        var slice = code.Lines.Lines[index].Slice;
+                        codeParagraph.Inlines.Add(new Run(slice.ToString()) { Tag = new SourceSpan(slice.Start, slice.End) });
+                    }
+                    destination.Add(codeParagraph);
                     break;
                 case QuoteBlock quote:
                     var section = new Section
@@ -167,10 +176,10 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
         return result;
     }
 
-    private Wpf.Paragraph Paragraph(ContainerInline? source)
+    private Wpf.Paragraph Paragraph(LeafBlock source)
     {
-        var result = new Wpf.Paragraph { Margin = new Thickness(0, 0, 0, 13) };
-        if (source is not null) WriteInlines(source, result.Inlines, 0, false);
+        var result = new Wpf.Paragraph { Margin = new Thickness(0, 0, 0, 13), Tag = source.Span };
+        if (source.Inline is { } inlines) WriteInlines(inlines, result.Inlines, 0, false);
         return result;
     }
 
@@ -182,19 +191,19 @@ public sealed class MarkdownView(FrameworkElement palette, ReaderFile file, IRea
             if (++nodeCount > 18000) break;
             switch (inline)
             {
-                case LiteralInline literal: destination.Add(new Run(literal.Content.ToString())); break;
-                case HtmlEntityInline entity: destination.Add(new Run(entity.Transcoded.ToString())); break;
+                case LiteralInline literal: destination.Add(new Run(literal.Content.ToString()) { Tag = literal.Span }); break;
+                case HtmlEntityInline entity: destination.Add(new Run(entity.Transcoded.ToString()) { Tag = entity.Span }); break;
                 case AutolinkInline auto:
                     var link = MakeLink(auto.IsEmail ? "mailto:" + auto.Url : auto.Url);
-                    link.Inlines.Add(new Run(auto.Url));
+                    link.Inlines.Add(new Run(auto.Url) { Tag = auto.Span });
                     destination.Add(link);
                     break;
                 case CodeInline code:
-                    destination.Add(new Run(code.Content) { FontFamily = Mono, Background = Brush("Soft") });
+                    destination.Add(new Run(code.Content) { FontFamily = Mono, Background = Brush("Soft"), Tag = code.Span });
                     break;
                 case LineBreakInline line:
                     if (line.IsHard) destination.Add(new LineBreak());
-                    else destination.Add(new Run(" "));
+                    else destination.Add(new Run(" ") { Tag = line.Span });
                     break;
                 case TaskList task:
                     destination.Add(new Run(task.Checked ? "☑ " : "☐ ") { Foreground = Brush("Accent") });

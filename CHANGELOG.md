@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0-alpha.3
+
+- Choose Read, Edit, Split, or Last used when opening Markdown. The sidebar starts closed and remembers when you open it.
+- Click rendered text and type to start editing at that position. Turn the behavior off in Settings if you prefer.
+- Find and replace individual or all matches with optional case sensitivity and undo. Use Ctrl+1, Ctrl+2, and Ctrl+3 to switch views.
+- Refined all seven color themes and added subtle transitions for documents, the sidebar, Settings, and Find.
+
 ## 1.1.0-alpha.2
 
 - Edit and save HDL, Python, C, C++, Java, and other supported source or text files. Save As starts with the original file type.

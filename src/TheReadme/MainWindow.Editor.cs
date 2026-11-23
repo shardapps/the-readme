@@ -85,7 +85,7 @@ public partial class MainWindow
     {
         if (!await CanLeaveDocument()) return;
         CancelLoad();
-        Display(ReaderFile.Untitled("Untitled.md"), null, null, edit: true);
+        Display(ReaderFile.Untitled("Untitled.md"), null, null, view: ViewMode.Edit);
         Source.Focus();
     }
 
@@ -98,9 +98,9 @@ public partial class MainWindow
             null, null, sample: true);
     }
 
-    private async void ShowRendered(object sender, RoutedEventArgs e) => await SetMode(ViewMode.Read);
-    private async void ShowSource(object sender, RoutedEventArgs e) => await SetMode(ViewMode.Edit);
-    private async void ShowSplit(object sender, RoutedEventArgs e) => await SetMode(ViewMode.Split);
+    private async void ShowRendered(object sender, RoutedEventArgs e) => await ChooseView(ViewMode.Read);
+    private async void ShowSource(object sender, RoutedEventArgs e) => await ChooseView(ViewMode.Edit);
+    private async void ShowSplit(object sender, RoutedEventArgs e) => await ChooseView(ViewMode.Split);
 
     private async Task SetMode(ViewMode requested)
     {
@@ -123,6 +123,7 @@ public partial class MainWindow
         ViewModes.Visibility = markdown ? Visibility.Visible : Visibility.Collapsed;
         ReadButton.IsEnabled = SourceButton.IsEnabled = SplitButton.IsEnabled = markdown;
         Preview.Visibility = markdown && mode != ViewMode.Edit ? Visibility.Visible : Visibility.Collapsed;
+        if (mode == ViewMode.Read) ReplaceRow.Visibility = Visibility.Collapsed;
         Source.Visibility = currentFile is not null && mode != ViewMode.Read ? Visibility.Visible : Visibility.Collapsed;
         EditorTools.Visibility = Source.Visibility;
         FormattingTools.Visibility = markdown ? Visibility.Visible : Visibility.Collapsed;

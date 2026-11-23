@@ -19,7 +19,7 @@ public partial class MainWindow : Window
     private const string Sample = """
         # The Readme
 
-        This is an editable Markdown sample. Choose **Split** to work on the source and see the result as you type.
+        This is an editable Markdown sample. Click a word and start typing, or choose **Split** for a live preview beside the draft.
 
         ## Getting started
 
@@ -40,7 +40,8 @@ public partial class MainWindow : Window
         | Feature | Shortcut |
         | --- | --- |
         | Save changes | Ctrl+S |
-        | Find in the current view | Ctrl+F |
+        | Find or replace | Ctrl+F / Ctrl+H |
+        | Read / Edit / Split | Ctrl+1 / Ctrl+2 / Ctrl+3 |
         | Jump to a source line | Ctrl+G |
 
         - [x] Open the sample
@@ -63,13 +64,13 @@ public partial class MainWindow : Window
     private static readonly string[] ColorKeys = ["Base", "Surface", "Soft", "Line", "Ink", "Muted", "Accent", "OnAccent", "Hover"];
     private static readonly Dictionary<string, string[]> Themes = new()
     {
-        ["Lilac"] = ["#F8F7FC", "#FFFFFF", "#F0EDF8", "#DFDAEA", "#211B2F", "#635B71", "#6243BD", "#FFFFFF", "#E7E1F5"],
-        ["Paper"] = ["#FAF6EE", "#FFFDF7", "#F5EDDF", "#E3D8C8", "#2C221B", "#6E5B4A", "#884929", "#FFFFFF", "#EEE2D2"],
-        ["Midnight"] = ["#171421", "#201A2B", "#2C233A", "#40354D", "#F3EAFB", "#C1B1CF", "#CDB1FF", "#241334", "#3C2E50"],
-        ["Moss"] = ["#F0F4EF", "#FBFDF9", "#E6EEE5", "#D5E0D3", "#1D2D24", "#4E6356", "#31664D", "#FFFFFF", "#DDEBDC"],
-        ["Ocean"] = ["#EFF6FA", "#FAFDFF", "#E4F0F7", "#CBDDE8", "#132C3B", "#4A6374", "#215F83", "#FFFFFF", "#D8EAF4"],
-        ["Dusk"] = ["#25191D", "#302026", "#3F2A31", "#5D414B", "#FFF0F3", "#DFBAC5", "#F9AE91", "#3A211C", "#533440"],
-        ["Graphite"] = ["#14171B", "#1C2025", "#262C33", "#3E4751", "#F2F5F8", "#BAC4CF", "#B0D6FF", "#102339", "#354354"]
+        ["Lilac"] = ["#F4F1FA", "#FEFCFF", "#F1EAFB", "#DBD1EC", "#231933", "#594A70", "#6034BA", "#FFFFFF", "#E9DDF8"],
+        ["Paper"] = ["#F7F1E6", "#FFFDF7", "#F4EAD9", "#E1D2BD", "#302219", "#685441", "#884624", "#FFFFFF", "#EEE0CD"],
+        ["Midnight"] = ["#161320", "#20192D", "#2C2340", "#463A5A", "#F8F2FF", "#CABCE0", "#D2B9FF", "#241334", "#433359"],
+        ["Moss"] = ["#EAF1EA", "#FAFDF8", "#E3EDE2", "#CDDCCD", "#1A3025", "#435E4D", "#276243", "#FFFFFF", "#D6E7D8"],
+        ["Ocean"] = ["#EAF3F9", "#FAFDFF", "#E0EDF6", "#C7DDEB", "#142D40", "#405E75", "#185E89", "#FFFFFF", "#D0E7F6"],
+        ["Dusk"] = ["#26191E", "#332329", "#452B35", "#634352", "#FFF0F4", "#E6C3CC", "#FFB79E", "#3C2019", "#543540"],
+        ["Graphite"] = ["#14191E", "#1E242B", "#29323C", "#414D5C", "#F2F7FC", "#C1CCDA", "#AAD9FF", "#142737", "#334454"]
     };
 
     private readonly ReaderPreferences preferences;
@@ -98,6 +99,9 @@ public partial class MainWindow : Window
         RecentToggle.IsChecked = preferences.RememberRecent;
         AutoIndentToggle.IsChecked = preferences.AutoIndentSource;
         MotionToggle.IsChecked = preferences.AnimateTransitions;
+        TypeToEditToggle.IsChecked = preferences.TypeToEdit;
+        OpeningViewBox.SelectedItem = OpeningViewBox.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(item => Equals(item.Tag, preferences.OpeningView.ToString())) ?? OpeningViewBox.Items[0];
         foreach (string theme in Themes.Keys.Prepend("System"))
         {
             var label = new StackPanel { Orientation = Orientation.Horizontal };
@@ -191,7 +195,9 @@ public partial class MainWindow : Window
 
     private Brush GetBrush(string key) => (Brush)Resources[key];
 
-    internal async Task OpenFile(string path, string? anchor = null)
+    internal async Task OpenFile(string path, string? anchor = null) => await LoadFile(path, anchor);
+
+    private async Task LoadFile(string path, string? anchor = null, ViewMode? view = null)
     {
         if (!await CanLeaveDocument()) return;
         CancelLoad();
@@ -217,7 +223,7 @@ public partial class MainWindow : Window
             }, operation.Token);
             if (loading != operation || operation.IsCancellationRequested) return;
             pendingAnchor = anchor;
-            Display(result.file, result.markdown, result.images);
+            Display(result.file, result.markdown, result.images, view: anchor is not null && (view ?? PreferredView) == ViewMode.Edit ? ViewMode.Read : view);
             preferences.Record(result.file.Path);
         }
         catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
@@ -238,19 +244,21 @@ public partial class MainWindow : Window
         loading = null;
     }
 
-    private void Display(ReaderFile file, MarkdownDocument? markdown, IReadOnlyDictionary<string, ImageSource>? images, bool sample = false, bool edit = false)
+    private void Display(ReaderFile file, MarkdownDocument? markdown, IReadOnlyDictionary<string, ImageSource>? images, bool sample = false, ViewMode? view = null)
     {
         CancelPreview();
         currentFile = file;
         currentMarkdown = markdown;
         currentImages = images ?? new Dictionary<string, ImageSource>();
-        mode = file.Format.Kind == FileKind.Markdown && !edit ? ViewMode.Read : ViewMode.Edit;
+        mode = file.Format.Kind == FileKind.Markdown ? view ?? (sample ? ViewMode.Read : PreferredView) : ViewMode.Edit;
         LoadEditor(file.Text, loadNow: mode != ViewMode.Read);
         savedText = renderedText = file.Text;
         dirty = false;
         FindBar.Visibility = Visibility.Collapsed;
+        ReplaceRow.Visibility = Visibility.Collapsed;
         LineEntry.Visibility = Visibility.Collapsed;
         FindBox.Clear();
+        ReplaceBox.Clear();
         searchDelay.Stop();
         RenderPreview();
         FileTitle.Text = sample ? "Sample document" : file.Name;
@@ -263,7 +271,9 @@ public partial class MainWindow : Window
         RefreshMode();
         RefreshDocumentLabel();
         Status.Text = sample ? $"Sample · {file.Format.Label}" : FileStatus(file);
-        FadeIn(DocumentArea);
+        FadeIn(DocumentArea, travel: 4);
+        if (mode == ViewMode.Read) Preview.Focus();
+        else Source.Focus();
         if (pendingAnchor is { } anchor)
         {
             pendingAnchor = null;
@@ -290,7 +300,8 @@ public partial class MainWindow : Window
 
     private void RefreshRail()
     {
-        HomeButton.Visibility = HomeDivider.Visibility = currentFile is null ? Visibility.Collapsed : Visibility.Visible;
+        ToolbarHomeButton.Visibility = HomeButton.Visibility = HomeDivider.Visibility =
+            currentFile is null ? Visibility.Collapsed : Visibility.Visible;
         bool showOutline = currentFile?.Format.Kind == FileKind.Markdown;
         RailHeading.Text = showOutline ? "On this page" : "Recent files";
         RailEntry[] entries = !showOutline
@@ -339,7 +350,7 @@ public partial class MainWindow : Window
 
     private async void Reload(object sender, RoutedEventArgs e)
     {
-        if (currentFile is { IsOnDisk: true } file) await OpenFile(file.Path);
+        if (currentFile is { IsOnDisk: true } file) await LoadFile(file.Path, view: mode);
     }
 
     private void RevealFile(object sender, RoutedEventArgs e)
@@ -389,7 +400,7 @@ public partial class MainWindow : Window
         Title = "The Readme";
         Status.Text = "Ready to read";
         RefreshRail();
-        FadeIn(Welcome);
+        FadeIn(Welcome, travel: 5);
     }
 
     private void ToggleRail(object sender, RoutedEventArgs e)
@@ -397,7 +408,7 @@ public partial class MainWindow : Window
         preferences.ShowSidebar = !preferences.ShowSidebar;
         preferences.Save();
         ShowRail();
-        if (preferences.ShowSidebar) FadeIn(Rail);
+        if (preferences.ShowSidebar) FadeIn(Rail, travel: 3);
     }
 
     private void ShowRail()
@@ -414,7 +425,7 @@ public partial class MainWindow : Window
         if (show)
         {
             RefreshPath();
-            FadeIn(SettingsPane);
+            FadeIn(SettingsPane, travel: 5);
             ThemeButtons.Children.OfType<Button>().First().Focus();
         }
         else SettingsButton.Focus();
@@ -485,6 +496,7 @@ public partial class MainWindow : Window
     {
         preferences.AutoIndentSource = AutoIndentToggle.IsChecked == true;
         preferences.AnimateTransitions = MotionToggle.IsChecked == true;
+        preferences.TypeToEdit = TypeToEditToggle.IsChecked == true;
         preferences.Save();
     }
 
@@ -499,7 +511,9 @@ public partial class MainWindow : Window
     private void OpenFind(object sender, RoutedEventArgs e)
     {
         if (currentFile is null) return;
+        bool wasOpen = FindBar.IsVisible;
         FindBar.Visibility = Visibility.Visible;
+        if (!wasOpen) FadeIn(FindBar, travel: 3);
         FindBox.Focus();
         FindBox.SelectAll();
     }
@@ -507,23 +521,28 @@ public partial class MainWindow : Window
     private void CloseFind(object sender, RoutedEventArgs e)
     {
         FindBar.Visibility = Visibility.Collapsed;
+        ReplaceRow.Visibility = Visibility.Collapsed;
         FindBox.Clear();
         searchDelay.Stop();
         Search();
         FindButton.Focus();
     }
 
-    private void SearchChanged(object sender, TextChangedEventArgs e)
+    private void SearchChanged(object sender, RoutedEventArgs e)
     {
         searchDelay.Stop();
         searchDelay.Start();
     }
 
-    private void Search()
+    private void SearchCaseChanged(object sender, RoutedEventArgs e) => SearchChanged(sender, e);
+
+    private StringComparison SearchComparison => MatchCase.IsChecked == true ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+    private void Search(int from = 0)
     {
         matches.Clear();
         matchIndex = 0;
-        string query = FindBox.Text.Trim();
+        string query = FindBox.Text;
         if (query.Length == 0 || currentFile is null)
         {
             FindCount.Text = "";
@@ -533,11 +552,13 @@ public partial class MainWindow : Window
         }
         string text = mode != ViewMode.Read ? Source.Text : (searchIndex ??= new DocumentSearch(Preview.Document)).Text;
         int position = 0;
-        while (matches.Count < 1000 && (position = text.IndexOf(query, position, StringComparison.OrdinalIgnoreCase)) >= 0)
+        var comparison = SearchComparison;
+        while (matches.Count < 1000 && (position = text.IndexOf(query, position, comparison)) >= 0)
         {
             matches.Add(position);
             position += query.Length;
         }
+        if (from > 0) matchIndex = Math.Max(0, matches.FindIndex(offset => offset >= from));
         SelectMatch();
     }
 
@@ -561,7 +582,7 @@ public partial class MainWindow : Window
             return;
         }
         int start = matches[matchIndex];
-        int length = FindBox.Text.Trim().Length;
+        int length = FindBox.Text.Length;
         FindCount.Text = $"{matchIndex + 1} of {matches.Count}{(matches.Count == 1000 ? "+" : "")}";
         if (mode != ViewMode.Read)
         {
@@ -620,7 +641,7 @@ public partial class MainWindow : Window
     private void ZoomOut(object sender, RoutedEventArgs e) => SetZoom(preferences.Zoom - 10);
     private void ZoomReset(object sender, RoutedEventArgs e) => SetZoom(100);
 
-    private void HandleKey(object sender, KeyEventArgs e)
+    private async void HandleKey(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
@@ -630,6 +651,7 @@ public partial class MainWindow : Window
             else return;
         }
         else if (e.Key == Key.Enter && FindBox.IsKeyboardFocusWithin) MoveMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1);
+        else if (e.Key == Key.Enter && ReplaceBox.IsKeyboardFocusWithin) ReplaceMatches(all: false);
         else if (e.Key == Key.Enter && LineBox.IsKeyboardFocusWithin) GoToLine();
         else if (e.Key == Key.Enter && Source.IsKeyboardFocusWithin && Keyboard.Modifiers == ModifierKeys.None)
         {
@@ -637,13 +659,18 @@ public partial class MainWindow : Window
             return;
         }
         else if (e.Key == Key.F5) Reload(sender, e);
-        else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        else if (e.Key == Key.System && e.SystemKey == Key.Home && Keyboard.Modifiers == ModifierKeys.Alt) GoHome(sender, e);
+        else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
         {
             switch (e.Key)
             {
                 case Key.O: PickFile(sender, e); break;
                 case Key.N: NewDocument(sender, e); break;
                 case Key.F: OpenFind(sender, e); break;
+                case Key.H: OpenReplace(sender, e); break;
+                case Key.D1 or Key.NumPad1: e.Handled = true; await ChooseView(ViewMode.Read); return;
+                case Key.D2 or Key.NumPad2: e.Handled = true; await ChooseView(ViewMode.Edit); return;
+                case Key.D3 or Key.NumPad3: e.Handled = true; await ChooseView(ViewMode.Split); return;
                 case Key.G: OpenGoTo(sender, e); break;
                 case Key.S when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): SaveAsClicked(sender, e); break;
                 case Key.S: SaveClicked(sender, e); break;
@@ -651,6 +678,9 @@ public partial class MainWindow : Window
                 case Key.B: ToggleRail(sender, e); break;
                 case Key.I when Source.IsKeyboardFocusWithin: ApplyInline("*"); break;
                 case Key.U when Source.IsKeyboardFocusWithin: ApplyInline("++"); break;
+                case Key.Z when Source.IsKeyboardFocusWithin && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift): Source.Redo(); break;
+                case Key.Z when Source.IsKeyboardFocusWithin: Source.Undo(); break;
+                case Key.Y when Source.IsKeyboardFocusWithin: Source.Redo(); break;
                 case Key.OemComma: ToggleSettings(sender, e); break;
                 case Key.OemPlus or Key.Add: ZoomIn(sender, e); break;
                 case Key.OemMinus or Key.Subtract: ZoomOut(sender, e); break;
@@ -670,12 +700,22 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void FadeIn(UIElement element)
+    private void FadeIn(UIElement element, double travel = 0)
     {
         if (!preferences.AnimateTransitions || !SystemParameters.ClientAreaAnimation || SystemParameters.HighContrast) return;
-        element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(170))
+        var duration = TimeSpan.FromMilliseconds(travel == 0 ? 145 : 190);
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        element.BeginAnimation(OpacityProperty, new DoubleAnimation(0.87, 1, duration)
         {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            EasingFunction = easing,
+            FillBehavior = FillBehavior.Stop
+        });
+        if (travel == 0) return;
+        var offset = new TranslateTransform();
+        element.RenderTransform = offset;
+        offset.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(travel, 0, duration)
+        {
+            EasingFunction = easing,
             FillBehavior = FillBehavior.Stop
         });
     }
