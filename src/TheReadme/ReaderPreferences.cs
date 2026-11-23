@@ -1,20 +1,27 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TheReadme;
+
+[JsonConverter(typeof(JsonStringEnumConverter<MarkdownOpeningView>))]
+public enum MarkdownOpeningView { Read, Edit, Split, LastUsed }
 
 public sealed class ReaderPreferences
 {
     private static readonly string SettingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ShardApps", "TheReadme", "preferences.json");
-    private readonly string settingsFile;
+    private string settingsFile;
 
     public ReaderPreferences() : this(SettingsFile) { }
     internal ReaderPreferences(string settingsFile) => this.settingsFile = settingsFile;
 
     public string Theme { get; set; } = "System";
     public int Zoom { get; set; } = 100;
-    public bool ShowSidebar { get; set; } = true;
+    public bool ShowSidebar { get; set; }
+    public MarkdownOpeningView OpeningView { get; set; }
+    public MarkdownOpeningView LastMarkdownView { get; set; }
+    public bool TypeToEdit { get; set; } = true;
     public bool RememberRecent { get; set; } = true;
     public bool WrapCode { get; set; }
     public bool WrapText { get; set; } = true;
@@ -23,17 +30,21 @@ public sealed class ReaderPreferences
     public List<string> Recent { get; set; } = [];
 
     public static ReaderPreferences Load()
+        => Load(SettingsFile);
+
+    internal static ReaderPreferences Load(string path)
     {
         try
         {
-            var settings = JsonSerializer.Deserialize<ReaderPreferences>(File.ReadAllText(SettingsFile)) ?? new();
+            var settings = JsonSerializer.Deserialize<ReaderPreferences>(File.ReadAllText(path)) ?? new(path);
+            settings.settingsFile = path;
             settings.Zoom = Math.Clamp(settings.Zoom, 60, 220);
             settings.Recent = settings.RememberRecent ? (settings.Recent ?? []).Where(path => !string.IsNullOrWhiteSpace(path)).Take(8).ToList() : [];
             return settings;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
-            return new();
+            return new(path);
         }
     }
 

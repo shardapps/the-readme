@@ -16,7 +16,7 @@
 
 </div>
 
-Source editing, the HDL example, and Markdown underline require alpha 2 or later.
+Source editing, opening preferences, and Find and Replace are available in the updated preview build.
 
 The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md`, plain text, and source code. Preview Markdown as you type, or work directly in Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats.
 
@@ -29,16 +29,19 @@ The x64 and Arm64 setup EXEs are about **2.6 MB each**. The app uses native Wind
 ## Write Markdown and plain text
 
 - **Read, Edit, and Split.** Open a README, edit the Markdown source, and see a live preview alongside it. The split view stacks when the usable width gets narrow.
+- **Start where you clicked.** Click text in Read view and begin typing to switch to Edit at that position. Settings lets you turn off this behavior and choose Read, Edit, Split, or Last used for newly opened Markdown.
 - **Format a selection.** Toggle bold, italic, strikethrough, and inline code. Use **Text style** to switch between title, heading, subheading, and body text. Underline uses the extended Markdown syntax `++text++`, which may display as plain text in other Markdown apps.
 - **Save a draft or a copy.** Use **New** to start a Markdown file. Save edits to the original file or use **Save As** to make a copy. The app prompts before leaving unsaved changes and detects a file changed on disk before saving over it.
 - **Edit source files.** Open a Python or HDL sample from Home to try editing, searching, wrapping, and going to a line. Source files save as plain text with their original extension. In Settings, you can turn off automatic indentation and transition animations.
 
 ![Markdown source and live preview side by side in the Ocean theme, with formatting and save controls](docs/screenshots/editor.png)
 
+![Find and Replace panel above the Markdown editor and its live preview](docs/screenshots/replace.png)
+
 ## Read and navigate
 
 - **Reflow at your window size.** Text fills the available reading area as you resize, maximize, or hide the outline. Zoom from 60% to 220% with the toolbar, keyboard, or Ctrl+mouse wheel.
-- **Find and jump.** Search the current view, jump to a heading from the Markdown outline, use **Go to line** in source, or reopen a recent file.
+- **Find and jump.** Search the current view, replace one or every matching phrase in the editor, or use **Go to line** in source. Toggle the heading or recent files sidebar with Ctrl+B. It starts closed and remembers your choice.
 - **Choose a palette.** Select Lilac, Paper, Moss, Ocean, Midnight, Dusk, Graphite, or follow your system theme. Click outside Settings or press Escape to close it.
 - **Keep documents local.** The reader requires no sign-in and sends no telemetry. It displays the alt text for remote images and opens external links when activated. [Privacy policy](PRIVACY.md)
 
@@ -71,6 +74,9 @@ readme .\src\main.cpp
 | `Ctrl+N` | New Markdown document |
 | `Ctrl+S` / `Ctrl+Shift+S` | Save or Save As |
 | `Ctrl+F` | Find in the current view |
+| `Ctrl+H` | Find and replace in the editor |
+| `Ctrl+1` / `Ctrl+2` / `Ctrl+3` | Switch to Read, Edit, or Split |
+| `Alt+Home` | Return to Home |
 | `Enter` / `Shift+Enter` | Next or previous match in the search field |
 | `Ctrl+G` | Go to a logical source line |
 | `Ctrl+B` | Show or hide the sidebar |
