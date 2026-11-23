@@ -4,7 +4,9 @@
 
 # The Readme
 
-**A native Windows editor for Markdown, plain text, and source code, with live Markdown preview.**
+**Open a README, fix a line, and get back to work.**
+
+Native Windows Markdown editor with live preview, Find and Replace, and source editing.
 
 **~2.6 MB per installer · 134 recognized extensions · 7 themes plus System**
 
@@ -18,7 +20,7 @@
 
 Source editing, opening preferences, and Find and Replace are available in the updated preview build.
 
-The Readme by Shard Apps is a free, Apache 2.0 desktop app for editing `README.md`, plain text, and source code. Preview Markdown as you type, or work directly in Python, C, C++, Java, HDL, Rust, JavaScript, JSON, CSV, and many other text formats.
+The Readme by Shard Apps is a free, Apache 2.0 desktop app for reading and editing `README.md`, plain text, and source files. Click rendered Markdown and type to fix a line, or use a split view to preview a draft as you write. Edit Python, C, C++, Java, HDL, Rust, JavaScript, JSON, and CSV in the same workspace.
 
 ![The Readme home window with a lilac folded-paper illustration, recent files, drag and drop, and interactive samples](docs/screenshots/welcome.png)
 
